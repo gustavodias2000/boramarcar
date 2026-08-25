@@ -11,7 +11,6 @@ import {
   CreditCard,
   Gauge,
   LayoutDashboard,
-  LogOut,
   Menu,
   MoreHorizontal,
   PackagePlus,
@@ -27,6 +26,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AutomotiveQuickEntry } from "@/components/automotive-quick-entry";
 import { AutomotiveAgenda } from "@/components/automotive-agenda";
+import { AutomotiveProfile } from "@/components/automotive-profile";
 import { AutomotiveWorkOrder } from "@/components/automotive-work-order";
 import {
   AutomotiveDataMode,
@@ -59,16 +59,25 @@ function formatToday() {
   return dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 }
 
+type SessionAccess = "checking" | "unconfigured" | "unauthenticated" | "ready" | "no-membership" | "error";
+
 export function AutomotivePatio() {
   const [orders, setOrders] = useState<PatioOrder[]>(demonstrationOrders);
   const [selectedId, setSelectedId] = useState(demonstrationOrders[1].id);
   const [mode, setMode] = useState<AutomotiveDataMode>("demonstration");
   const [tenantId, setTenantId] = useState<string | null>(null);
+  const [unitName, setUnitName] = useState<string | null>(null);
+  const [unitTimezone, setUnitTimezone] = useState<string | null>(null);
+  const [membershipRole, setMembershipRole] = useState<"owner" | "manager" | "receptionist" | "professional" | "cashier" | null>(null);
+  const [accessState, setAccessState] = useState<SessionAccess>(
+    hasSupabaseConfiguration() ? "checking" : "unconfigured",
+  );
+  const [accessError, setAccessError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isWorkOrderOpen, setIsWorkOrderOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"patio" | "agenda">("patio");
+  const [activeView, setActiveView] = useState<"patio" | "agenda" | "profile">("patio");
   const [notice, setNotice] = useState<string | null>(null);
   const [todayLabel] = useState(formatToday);
 
@@ -76,12 +85,19 @@ export function AutomotivePatio() {
     () => orders.find((order) => order.id === selectedId) ?? orders[0] ?? null,
     [orders, selectedId],
   );
+  const operationsBlocked = accessState === "no-membership" || accessState === "error";
+  const operationsLocked = operationsBlocked || accessState === "checking";
 
   useEffect(() => {
     async function loadLivePatio() {
       if (!hasSupabaseConfiguration()) {
         setMode("unconfigured");
         setTenantId(null);
+        setUnitName(null);
+        setUnitTimezone(null);
+        setMembershipRole(null);
+        setAccessError(null);
+        setAccessState("unconfigured");
         return;
       }
 
@@ -91,27 +107,75 @@ export function AutomotivePatio() {
       if (!sessionData.session) {
         setMode("demonstration");
         setTenantId(null);
+        setUnitName(null);
+        setUnitTimezone(null);
+        setMembershipRole(null);
+        setAccessError(null);
+        setAccessState("unauthenticated");
         return;
       }
 
       setIsLoading(true);
+      setAccessState("checking");
+      setAccessError(null);
       const { data: membership, error: membershipError } = await supabase
         .from("business_members")
-        .select("tenant_id")
+        .select("tenant_id, role")
         .eq("user_id", sessionData.session.user.id)
         .eq("active", true)
+        .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
 
-      if (membershipError || !membership) {
+      if (membershipError) {
         setNotice("Não foi possível identificar a unidade ativa desta sessão.");
         setMode("demonstration");
         setTenantId(null);
+        setUnitName(null);
+        setUnitTimezone(null);
+        setMembershipRole(null);
+        setAccessError(membershipError.message);
+        setAccessState("error");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!membership) {
+        setNotice(null);
+        setMode("demonstration");
+        setTenantId(null);
+        setUnitName(null);
+        setUnitTimezone(null);
+        setMembershipRole(null);
+        setAccessState("no-membership");
         setIsLoading(false);
         return;
       }
 
       setTenantId(membership.tenant_id);
+      setMembershipRole(membership.role);
+      const { data: business, error: businessError } = await supabase
+        .from("businesses")
+        .select("name, timezone")
+        .eq("id", membership.tenant_id)
+        .maybeSingle();
+
+      if (businessError || !business) {
+        setNotice("Não foi possível identificar os dados da unidade ativa.");
+        setMode("demonstration");
+        setTenantId(null);
+        setUnitName(null);
+        setUnitTimezone(null);
+        setMembershipRole(null);
+        setAccessError(businessError?.message ?? "Unidade não encontrada para a associação ativa.");
+        setAccessState("error");
+        setIsLoading(false);
+        return;
+      }
+
+      setUnitName(business.name);
+      setUnitTimezone(business.timezone ?? null);
+      setAccessState("ready");
       const { data, error } = await supabase
         .from("automotive_patio")
         .select("*")
@@ -120,7 +184,9 @@ export function AutomotivePatio() {
 
       if (error) {
         setNotice(`Não foi possível carregar o Pátio: ${error.message}`);
-        setMode("demonstration");
+        setOrders([]);
+        setSelectedId("");
+        setMode("empty");
       } else {
         const liveOrders = (data ?? []).map((order) => normalizePatioOrder(order as PatioOrder));
         setOrders(liveOrders);
@@ -206,7 +272,7 @@ export function AutomotivePatio() {
   }
 
   return (
-    <main className={`app-shell ${activeView === "agenda" ? "agenda-shell" : ""}`}>
+    <main className={`app-shell ${activeView === "agenda" ? "agenda-shell" : activeView === "profile" ? "profile-shell" : ""}`}>
       <aside className={`navigation ${isMenuOpen ? "navigation-open" : ""}`} aria-label="Navegação principal">
         <div className="brand-mark" aria-label="Bora Marcá">
           <span>bora</span>
@@ -222,6 +288,7 @@ export function AutomotivePatio() {
               className={`nav-item ${active ? "nav-item-active" : ""}`}
               type="button"
               aria-current={active ? "page" : undefined}
+              disabled={Boolean(view) && operationsLocked}
               onClick={() => {
                 if (view === "patio" || view === "agenda") {
                   setActiveView(view);
@@ -240,17 +307,17 @@ export function AutomotivePatio() {
         </nav>
 
         <div className="navigation-bottom">
-          <button className="nav-item" type="button" onClick={() => setNotice("Os ajustes da unidade serão disponibilizados nesta área.")}>
+          <button className={`nav-item ${activeView === "profile" ? "nav-item-active" : ""}`} type="button" onClick={() => { setActiveView("profile"); setIsMenuOpen(false); setNotice(null); }}>
             <Settings size={18} />
             <span>Ajustes</span>
           </button>
-          <button className="profile-button" type="button" onClick={() => setNotice("O perfil do gestor será configurado com autenticação e permissões.")}>
-            <span className="profile-avatar">GM</span>
+          <button className="profile-button" type="button" onClick={() => { setActiveView("profile"); setIsMenuOpen(false); setNotice(null); }}>
+            <span className="profile-avatar">AC</span>
             <span>
-              <strong>Gustavo</strong>
-              <small>Gestor</small>
+              <strong>Conta e acesso</strong>
+              <small>Perfil da unidade</small>
             </span>
-            <LogOut size={16} aria-label="Sair" />
+            <Settings size={16} aria-label="Abrir conta e acesso" />
           </button>
         </div>
       </aside>
@@ -262,9 +329,9 @@ export function AutomotivePatio() {
             <span className="sr-only">Abrir navegação</span>
           </button>
           <div className="workspace-location">
-            <span>Unidade Centro</span>
+            <span>{unitName ?? (accessState === "no-membership" ? "Sem unidade ativa" : accessState === "error" ? "Acesso indisponível" : mode === "demonstration" ? "Prévia demonstrativa" : "Unidade")}</span>
             <ChevronRight size={14} />
-            <strong>{activeView === "agenda" ? "Agenda" : "Estética Automotiva"}</strong>
+            <strong>{activeView === "agenda" ? "Agenda" : activeView === "profile" ? "Conta e acesso" : "Estética Automotiva"}</strong>
           </div>
           <div className="topbar-actions">
             <button className="icon-button" type="button" aria-label="Buscar" onClick={() => setNotice("A busca por placa, cliente e OS será adicionada ao Pátio.")}>
@@ -274,7 +341,7 @@ export function AutomotivePatio() {
               <Bell size={19} />
               <span className="notification-dot" />
             </button>
-            <button className="new-entry-button" type="button" onClick={() => { setIsEntryOpen(true); setNotice(null); }}>
+            <button className="new-entry-button" type="button" onClick={() => { setIsEntryOpen(true); setNotice(null); }} disabled={operationsLocked}>
               <Plus size={18} />
               Nova entrada
             </button>
@@ -292,7 +359,7 @@ export function AutomotivePatio() {
             </div>
           )}
 
-          {activeView === "agenda" ? <AutomotiveAgenda mode={mode} tenantId={tenantId} onOpenPatio={() => setActiveView("patio")} /> : <>
+          {activeView === "profile" || operationsBlocked ? <AutomotiveProfile configured={hasSupabaseConfiguration()} accessState={accessState} accessError={accessError} tenantId={tenantId} unitName={unitName} unitTimezone={unitTimezone} membershipRole={membershipRole} onOpenPatio={() => setActiveView("patio")} onSessionChanged={() => window.location.reload()} /> : activeView === "agenda" ? <AutomotiveAgenda mode={mode} tenantId={tenantId} onOpenPatio={() => setActiveView("patio")} /> : <>
           <section className="patio-heading">
             <div>
               <h1>Pátio agora</h1>
@@ -456,18 +523,18 @@ export function AutomotivePatio() {
               </section>
 
               <section className="detail-section quick-actions">
-                <button type="button" onClick={() => setIsWorkOrderOpen(true)}><PackagePlus size={17} />Adicionar item</button>
-                <button type="button" onClick={() => setIsWorkOrderOpen(true)}><CreditCard size={17} />Registrar pagamento</button>
-                <button type="button" onClick={() => setIsWorkOrderOpen(true)}><Sparkles size={17} />Fotos da OS</button>
+                <button type="button" onClick={() => setIsWorkOrderOpen(true)} disabled={operationsLocked}><PackagePlus size={17} />Adicionar item</button>
+                <button type="button" onClick={() => setIsWorkOrderOpen(true)} disabled={operationsLocked}><CreditCard size={17} />Registrar pagamento</button>
+                <button type="button" onClick={() => setIsWorkOrderOpen(true)} disabled={operationsLocked}><Sparkles size={17} />Fotos da OS</button>
               </section>
             </div>
 
             <div className="detail-footer">
-              <button type="button" className="secondary-action" onClick={() => setIsWorkOrderOpen(true)}>
+              <button type="button" className="secondary-action" onClick={() => setIsWorkOrderOpen(true)} disabled={operationsLocked}>
                 <Gauge size={18} />
                 Ver OS completa
               </button>
-              <button type="button" className="primary-action" onClick={() => void advanceOrder(selectedOrder)} disabled={isLoading}>
+              <button type="button" className="primary-action" onClick={() => void advanceOrder(selectedOrder)} disabled={isLoading || operationsLocked}>
                 {selectedOrder.status === "awaiting_pickup" ? <Check size={18} /> : <Wrench size={18} />}
                 {patioStatusCopy[selectedOrder.status].action}
               </button>

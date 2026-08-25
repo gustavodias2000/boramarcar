@@ -31,8 +31,13 @@ O primeiro viewport preserva três contextos ao mesmo tempo: a navegação da un
 - Abaixo de 980px: o painel da OS abre como gaveta lateral.
 - Abaixo de 680px: a navegação vira gaveta e o Pátio usa uma coluna, preservando as ações essenciais.
 
+## Superfície de conta
+
+**Conta e acesso** mantém a mesma prancheta operacional: uma faixa de identidade da conta, a unidade ativa, a leitura das permissões e um formulário pequeno para o único dado que a própria pessoa pode alterar. Sem sessão, a mesma área oferece entrada real pelo Supabase; sem configuração, explica que a prévia não grava dados.
+
+As permissões mostradas vêm dos papéis já protegidos por RLS e funções do banco. A tela não promete convite ou administração de membros até existir um fluxo seguro para criar e atribuir contas.
+
 ## Próximas superfícies
 
-1. Autenticação, perfil e permissões da unidade.
-2. Histórico de veículo, relatórios operacionais e fidelidade.
-3. Estoque, contas a receber e comunicações automatizadas.
+1. Histórico de veículo, relatórios operacionais e fidelidade.
+2. Estoque, contas a receber e comunicações automatizadas.
