@@ -18,10 +18,10 @@ O Bora Marcá Automotive será uma ferramenta de operação do pátio, e não ap
 - Ordem de Serviço com itens, valores, status, linha do tempo e pagamento.
 - Pátio com as etapas aguardando, em serviço, finalizado e aguardando retirada.
 - Boxes tratados como recursos de agenda para impedir dupla ocupação.
+- Histórico do veículo, relatórios operacionais baseados nos registros da OS e programa de fidelidade opt-in por unidade.
 
 ## Próximas etapas
 
-- Histórico completo do veículo, programa de fidelidade, avaliações e relatórios operacionais.
 - Estoque, contas a receber, integrações bancárias e comunicações automatizadas.
 - Portal do cliente e funcionalidades de marketplace somente após a operação interna estar consolidada.
 

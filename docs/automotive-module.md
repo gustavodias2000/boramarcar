@@ -10,6 +10,7 @@ O módulo Automotive está implementado no Supabase para empresas do tipo `autom
 - `automotive_work_order_intakes` e `automotive_work_order_deliveries`: recebimento e devolução são registros separados.
 - `automotive_work_order_items`, `automotive_work_order_payments` e `automotive_work_order_events`: composição financeira e histórico auditável da OS.
 - `automotive_work_order_media`: metadados de fotos para entrada, execução e entrega, vinculados ao bucket privado `automotive-work-order-media`.
+- `automotive_loyalty_programs` e `automotive_loyalty_entries`: regra opt-in da unidade e livro auditável de pontos por cliente.
 
 ## Comandos para a interface
 
@@ -24,6 +25,7 @@ Use as funções RPC para qualquer alteração de OS ou box:
 7. `record_automotive_work_order_payment` registra recebimento ou estorno sem confundir pagamento com entrega.
 8. `deliver_automotive_work_order` confirma a entrega e libera o box. `release_automotive_work_order_box` permite liberar o box antes da entrega quando o veículo é movido.
 9. Faça upload da foto para `empresa/OS/etapa/arquivo` e use `register_automotive_work_order_media` para vinculá-la. Para apagar, remova o objeto pela API do Supabase Storage e depois chame `remove_automotive_work_order_media` para retirar o metadado e registrar o evento.
+10. `save_automotive_loyalty_program` configura a regra por unidade; ao entregar uma OS, o banco cria o crédito de pontos automaticamente se o programa estiver ativo. `redeem_automotive_loyalty_reward` consome a recompensa com bloqueio transacional por cliente e uma chave UUID de resgate idempotente.
 
 ## Leitura do Pátio
 

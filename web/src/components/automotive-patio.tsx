@@ -2,6 +2,7 @@
 
 import {
   Bell,
+  BarChart3,
   CalendarDays,
   CarFront,
   Check,
@@ -26,6 +27,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { AutomotiveQuickEntry } from "@/components/automotive-quick-entry";
 import { AutomotiveAgenda } from "@/components/automotive-agenda";
+import { AutomotiveInsights } from "@/components/automotive-insights";
 import { AutomotiveProfile } from "@/components/automotive-profile";
 import { AutomotiveWorkOrder } from "@/components/automotive-work-order";
 import {
@@ -46,7 +48,8 @@ const navigation = [
   { label: "Agenda", icon: CalendarDays, view: "agenda" },
   { label: "OS", icon: ClipboardList },
   { label: "Clientes", icon: UsersRound },
-  { label: "Veículos", icon: CarFront },
+  { label: "Veículos", icon: CarFront, view: "vehicles" },
+  { label: "Relatórios", icon: BarChart3, view: "reports" },
 ];
 
 function formatToday() {
@@ -77,7 +80,7 @@ export function AutomotivePatio() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isWorkOrderOpen, setIsWorkOrderOpen] = useState(false);
-  const [activeView, setActiveView] = useState<"patio" | "agenda" | "profile">("patio");
+  const [activeView, setActiveView] = useState<"patio" | "agenda" | "vehicles" | "reports" | "profile">("patio");
   const [notice, setNotice] = useState<string | null>(null);
   const [todayLabel] = useState(formatToday);
 
@@ -272,7 +275,7 @@ export function AutomotivePatio() {
   }
 
   return (
-    <main className={`app-shell ${activeView === "agenda" ? "agenda-shell" : activeView === "profile" ? "profile-shell" : ""}`}>
+    <main className={`app-shell ${activeView === "agenda" ? "agenda-shell" : activeView === "profile" ? "profile-shell" : activeView === "vehicles" || activeView === "reports" ? "insights-shell" : ""}`}>
       <aside className={`navigation ${isMenuOpen ? "navigation-open" : ""}`} aria-label="Navegação principal">
         <div className="brand-mark" aria-label="Bora Marcá">
           <span>bora</span>
@@ -290,7 +293,7 @@ export function AutomotivePatio() {
               aria-current={active ? "page" : undefined}
               disabled={Boolean(view) && operationsLocked}
               onClick={() => {
-                if (view === "patio" || view === "agenda") {
+                if (view === "patio" || view === "agenda" || view === "vehicles" || view === "reports") {
                   setActiveView(view);
                   setIsMenuOpen(false);
                   setNotice(null);
@@ -331,7 +334,7 @@ export function AutomotivePatio() {
           <div className="workspace-location">
             <span>{unitName ?? (accessState === "no-membership" ? "Sem unidade ativa" : accessState === "error" ? "Acesso indisponível" : mode === "demonstration" ? "Prévia demonstrativa" : "Unidade")}</span>
             <ChevronRight size={14} />
-            <strong>{activeView === "agenda" ? "Agenda" : activeView === "profile" ? "Conta e acesso" : "Estética Automotiva"}</strong>
+            <strong>{activeView === "agenda" ? "Agenda" : activeView === "profile" ? "Conta e acesso" : activeView === "vehicles" ? "Histórico de veículos" : activeView === "reports" ? "Relatórios" : "Estética Automotiva"}</strong>
           </div>
           <div className="topbar-actions">
             <button className="icon-button" type="button" aria-label="Buscar" onClick={() => setNotice("A busca por placa, cliente e OS será adicionada ao Pátio.")}>
@@ -359,7 +362,7 @@ export function AutomotivePatio() {
             </div>
           )}
 
-          {activeView === "profile" || operationsBlocked ? <AutomotiveProfile configured={hasSupabaseConfiguration()} accessState={accessState} accessError={accessError} tenantId={tenantId} unitName={unitName} unitTimezone={unitTimezone} membershipRole={membershipRole} onOpenPatio={() => setActiveView("patio")} onSessionChanged={() => window.location.reload()} /> : activeView === "agenda" ? <AutomotiveAgenda mode={mode} tenantId={tenantId} onOpenPatio={() => setActiveView("patio")} /> : <>
+          {activeView === "profile" || operationsBlocked ? <AutomotiveProfile configured={hasSupabaseConfiguration()} accessState={accessState} accessError={accessError} tenantId={tenantId} unitName={unitName} unitTimezone={unitTimezone} membershipRole={membershipRole} onOpenPatio={() => setActiveView("patio")} onSessionChanged={() => window.location.reload()} /> : activeView === "agenda" ? <AutomotiveAgenda mode={mode} tenantId={tenantId} onOpenPatio={() => setActiveView("patio")} /> : activeView === "vehicles" || activeView === "reports" ? <AutomotiveInsights view={activeView} mode={mode} tenantId={tenantId} membershipRole={membershipRole} onOpenPatio={() => setActiveView("patio")} /> : <>
           <section className="patio-heading">
             <div>
               <h1>Pátio agora</h1>

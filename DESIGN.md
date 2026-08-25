@@ -37,7 +37,12 @@ O primeiro viewport preserva três contextos ao mesmo tempo: a navegação da un
 
 As permissões mostradas vêm dos papéis já protegidos por RLS e funções do banco. A tela não promete convite ou administração de membros até existir um fluxo seguro para criar e atribuir contas.
 
+## Histórico, relatórios e fidelidade
+
+**Dossiê de rodagem.** Veículos, OS, condição na entrada, entrega e valor ficam na mesma leitura. A lista de veículos é uma chave de consulta; o centro preserva a linha do tempo do carro e o painel final mostra o relacionamento com o cliente.
+
+Os relatórios usam livro de movimentação, não cartões decorativos: recebido registrado, entregas, ticket e tempo de ciclo são cálculos que apontam para as próprias OS. A fidelidade é opt-in: proprietário ou gestor configura a regra; somente entregas posteriores à ativação concedem pontos, e o resgate é registrado transacionalmente.
+
 ## Próximas superfícies
 
-1. Histórico de veículo, relatórios operacionais e fidelidade.
-2. Estoque, contas a receber e comunicações automatizadas.
+1. Estoque, contas a receber e comunicações automatizadas.
