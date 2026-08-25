@@ -9,7 +9,7 @@ O módulo Automotive está implementado no Supabase para empresas do tipo `autom
 - `automotive_work_orders`: Ordem de Serviço, com número sequencial por empresa e vínculo opcional ao agendamento de origem.
 - `automotive_work_order_intakes` e `automotive_work_order_deliveries`: recebimento e devolução são registros separados.
 - `automotive_work_order_items`, `automotive_work_order_payments` e `automotive_work_order_events`: composição financeira e histórico auditável da OS.
-- `automotive_work_order_media`: metadados de fotos para entrada, execução e entrega. O bucket e as políticas do Supabase Storage serão a próxima etapa de mídia.
+- `automotive_work_order_media`: metadados de fotos para entrada, execução e entrega, vinculados ao bucket privado `automotive-work-order-media`.
 
 ## Comandos para a interface
 
@@ -22,6 +22,7 @@ Use as funções RPC para qualquer alteração de OS ou box:
 5. `transition_automotive_work_order` move a OS entre aguardando serviço, em serviço, serviço concluído e aguardando retirada.
 6. `record_automotive_work_order_payment` registra recebimento ou estorno sem confundir pagamento com entrega.
 7. `deliver_automotive_work_order` confirma a entrega e libera o box. `release_automotive_work_order_box` permite liberar o box antes da entrega quando o veículo é movido.
+8. Faça upload da foto para `empresa/OS/etapa/arquivo` e use `register_automotive_work_order_media` para vinculá-la. Para apagar, remova o objeto pela API do Supabase Storage e depois chame `remove_automotive_work_order_media` para retirar o metadado e registrar o evento.
 
 ## Leitura do Pátio
 
@@ -29,4 +30,4 @@ A view `automotive_patio` é a fonte da tela operacional. Ela retorna somente OS
 
 ## Segurança
 
-As tabelas de OS são somente leitura para o cliente. As funções validam empresa Automotive, papel do usuário, transições permitidas e relações no mesmo `tenant_id`. A reserva de box é uma constraint transacional: uma OS ativa bloqueia o recurso do box até a liberação.
+As tabelas de OS são somente leitura para o cliente. As funções validam empresa Automotive, papel do usuário, transições permitidas e relações no mesmo `tenant_id`. A reserva de box é uma constraint transacional: uma OS ativa bloqueia o recurso do box até a liberação. As fotos usam um bucket privado, sem URLs públicas; a leitura e o upload conferem a empresa e a OS embutidas no caminho.

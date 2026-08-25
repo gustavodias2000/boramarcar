@@ -53,3 +53,7 @@ _Evitar_: Status da OS
 **Ocupação de box**:
 Bloqueio de agenda aberto enquanto uma OS usa fisicamente um box. Termina quando a equipe libera ou entrega o veículo.
 _Evitar_: Agendamento do box
+
+**Foto de OS**:
+Evidência visual privada ligada a uma Ordem de Serviço e classificada como entrada, execução ou entrega.
+_Evitar_: Foto do cliente, anexo solto

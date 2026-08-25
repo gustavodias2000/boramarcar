@@ -117,7 +117,9 @@ declare
   v_box public.automotive_boxes;
   v_appointment public.appointments;
   v_work_order public.automotive_work_orders;
+  v_media public.automotive_work_order_media;
   v_resource_id uuid;
+  v_storage_path text;
 begin
   select *
   into v_box
@@ -177,6 +179,48 @@ begin
       and patio.payment_status = 'unpaid'
   ) then
     raise exception 'Expected the open work order to appear in the Pátio';
+  end if;
+
+  v_storage_path := format(
+    '%s/%s/intake/89898989-8989-4898-8898-898989898989.webp',
+    v_work_order.tenant_id,
+    v_work_order.id
+  );
+
+  insert into storage.objects (bucket_id, name, owner, metadata)
+  values (
+    'automotive-work-order-media',
+    v_storage_path,
+    '12121212-1212-4212-8212-121212121212',
+    '{"mimetype":"image/webp","size":1}'::jsonb
+  );
+
+  select *
+  into v_media
+  from public.register_automotive_work_order_media(
+    v_work_order.id,
+    'intake',
+    v_storage_path,
+    'Foto de entrada'
+  );
+
+  if not exists (
+    select 1
+    from public.automotive_work_order_media media
+    where media.id = v_media.id
+      and media.storage_path = v_storage_path
+  ) then
+    raise exception 'Expected the uploaded object to be registered as work-order media';
+  end if;
+
+  perform public.remove_automotive_work_order_media(v_media.id);
+
+  if exists (
+    select 1
+    from public.automotive_work_order_media media
+    where media.id = v_media.id
+  ) then
+    raise exception 'Expected media removal to delete the work-order metadata';
   end if;
 
   perform public.add_automotive_work_order_item(
