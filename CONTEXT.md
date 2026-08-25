@@ -41,3 +41,15 @@ _Evitar_: Vaga
 **Entrega**:
 Confirmação de devolução do veículo ao cliente. É distinta tanto da conclusão técnica do serviço quanto do pagamento.
 _Evitar_: Finalização
+
+**Item de OS**:
+Registro imutável de um serviço ou produto cobrado em uma Ordem de Serviço, com descrição, quantidade e preço no momento da operação.
+_Evitar_: Serviço cadastrado, produto cadastrado
+
+**Pagamento de OS**:
+Registro de uma entrada ou estorno financeiro vinculado a uma Ordem de Serviço. O estado de pagamento é apurado a partir desses registros, sem se confundir com a Entrega.
+_Evitar_: Status da OS
+
+**Ocupação de box**:
+Bloqueio de agenda aberto enquanto uma OS usa fisicamente um box. Termina quando a equipe libera ou entrega o veículo.
+_Evitar_: Agendamento do box
