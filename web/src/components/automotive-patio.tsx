@@ -26,6 +26,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { AutomotiveQuickEntry } from "@/components/automotive-quick-entry";
+import { AutomotiveWorkOrder } from "@/components/automotive-work-order";
 import {
   AutomotiveDataMode,
   demonstrationOrders,
@@ -65,6 +66,7 @@ export function AutomotivePatio() {
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(false);
+  const [isWorkOrderOpen, setIsWorkOrderOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [todayLabel] = useState(formatToday);
 
@@ -181,6 +183,24 @@ export function AutomotivePatio() {
       );
     }
     setIsLoading(false);
+  }
+
+  function updateSelectedOrderTotals(totalDelta: number, paidDelta: number) {
+    if (!selectedOrder) return;
+
+    setOrders((current) => current.map((currentOrder) => {
+      if (currentOrder.id !== selectedOrder.id) return currentOrder;
+
+      const total = Number(currentOrder.total_amount) + totalDelta;
+      const paid = Number(currentOrder.paid_amount) + paidDelta;
+      return {
+        ...currentOrder,
+        total_amount: total,
+        paid_amount: paid,
+        outstanding_amount: total - paid,
+        payment_status: total <= 0 || paid >= total ? "paid" : paid > 0 ? "partial" : "unpaid",
+      };
+    }));
   }
 
   return (
@@ -340,7 +360,15 @@ export function AutomotivePatio() {
         </div>
       </section>
 
-      {isEntryOpen ? (
+      {isWorkOrderOpen && selectedOrder ? (
+        <AutomotiveWorkOrder
+          key={selectedOrder.id}
+          mode={mode}
+          order={selectedOrder}
+          onClose={() => setIsWorkOrderOpen(false)}
+          onTotalsChange={updateSelectedOrderTotals}
+        />
+      ) : isEntryOpen ? (
         <AutomotiveQuickEntry
           mode={mode}
           tenantId={tenantId}
@@ -413,14 +441,14 @@ export function AutomotivePatio() {
               </section>
 
               <section className="detail-section quick-actions">
-                <button type="button" onClick={() => setNotice("Itens serão incluídos pela tela completa da OS.")}><PackagePlus size={17} />Adicionar item</button>
-                <button type="button" onClick={() => setNotice("O registro de pagamentos será o próximo fluxo financeiro.")}><CreditCard size={17} />Registrar pagamento</button>
-                <button type="button" onClick={() => setNotice("As fotos serão enviadas para o Storage privado da OS.")}><Sparkles size={17} />Fotos da OS</button>
+                <button type="button" onClick={() => setIsWorkOrderOpen(true)}><PackagePlus size={17} />Adicionar item</button>
+                <button type="button" onClick={() => setIsWorkOrderOpen(true)}><CreditCard size={17} />Registrar pagamento</button>
+                <button type="button" onClick={() => setIsWorkOrderOpen(true)}><Sparkles size={17} />Fotos da OS</button>
               </section>
             </div>
 
             <div className="detail-footer">
-              <button type="button" className="secondary-action" onClick={() => setNotice("A tela completa da OS será aberta neste fluxo.")}>
+              <button type="button" className="secondary-action" onClick={() => setIsWorkOrderOpen(true)}>
                 <Gauge size={18} />
                 Ver OS completa
               </button>

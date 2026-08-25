@@ -49,6 +49,61 @@ export interface QuickEntryDraft {
   notes: string;
 }
 
+export type WorkOrderItemKind = "service" | "product";
+export type AutomotivePaymentKind = "payment" | "refund";
+export type AutomotivePaymentMethod = "cash" | "pix" | "credit_card" | "debit_card" | "bank_transfer" | "other";
+export type AutomotiveMediaStage = "intake" | "execution" | "delivery";
+
+export interface WorkOrderItem {
+  id: string;
+  tenant_id: string;
+  work_order_id: string;
+  kind: WorkOrderItemKind;
+  description: string;
+  quantity: number | string;
+  unit_price: number | string;
+  line_total: number | string;
+  created_at: string;
+}
+
+export interface WorkOrderPayment {
+  id: string;
+  tenant_id: string;
+  work_order_id: string;
+  kind: AutomotivePaymentKind;
+  method: AutomotivePaymentMethod;
+  amount: number | string;
+  paid_at: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface WorkOrderMedia {
+  id: string;
+  tenant_id: string;
+  work_order_id: string;
+  stage: AutomotiveMediaStage;
+  storage_path: string;
+  caption: string | null;
+  created_at: string;
+  signed_url?: string;
+}
+
+export const paymentMethodCopy: Record<AutomotivePaymentMethod, string> = {
+  cash: "Dinheiro",
+  pix: "Pix",
+  credit_card: "Crédito",
+  debit_card: "Débito",
+  bank_transfer: "Transferência",
+  other: "Outro",
+};
+
+export const mediaStageCopy: Record<AutomotiveMediaStage, string> = {
+  intake: "Entrada",
+  execution: "Execução",
+  delivery: "Entrega",
+};
+
 export const initialQuickEntryDraft: QuickEntryDraft = {
   licensePlate: "",
   customerName: "",
@@ -228,6 +283,15 @@ export function formatCurrency(value: number | string) {
 
 export function formatTime(value: string) {
   return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+export function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
