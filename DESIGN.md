@@ -20,6 +20,7 @@ O primeiro viewport preserva três contextos ao mesmo tempo: a navegação da un
 
 - **Faixa de OS:** placa, número da OS, veículo, técnico e box. A seleção cria um contorno escuro, sem abrir uma nova página.
 - **Painel da OS:** identidade do veículo, etapa, linha do tempo curta, cliente e fechamento financeiro. A ação principal sempre avança uma etapa ou confirma a entrega.
+- **Agenda:** grade diária por profissional. Reservas, bloqueios e indisponibilidade recorrente usam a mesma escala de tempo, para mostrar a capacidade antes de confirmar um novo atendimento.
 - **Aviso contextual:** ações ainda não conectadas mostram uma mensagem honesta de próximo fluxo; não simulam alteração de dados.
 - **Modo de dados:** sem sessão ou configuração, a interface fica identificada como prévia demonstrativa. Com sessão e variáveis públicas do Supabase, ela consulta `automotive_patio` e chama as RPCs de transição/entrega.
 
@@ -32,7 +33,6 @@ O primeiro viewport preserva três contextos ao mesmo tempo: a navegação da un
 
 ## Próximas superfícies
 
-1. Entrada rápida por placa e criação de OS.
-2. OS completa: itens, pagamentos e mídia privada.
-3. Agenda e disponibilidade conectadas ao Pátio.
-4. Autenticação, perfil e permissões da unidade.
+1. Autenticação, perfil e permissões da unidade.
+2. Histórico de veículo, relatórios operacionais e fidelidade.
+3. Estoque, contas a receber e comunicações automatizadas.

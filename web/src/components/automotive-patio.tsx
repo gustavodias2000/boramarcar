@@ -26,6 +26,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { AutomotiveQuickEntry } from "@/components/automotive-quick-entry";
+import { AutomotiveAgenda } from "@/components/automotive-agenda";
 import { AutomotiveWorkOrder } from "@/components/automotive-work-order";
 import {
   AutomotiveDataMode,
@@ -41,8 +42,8 @@ import {
 import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/client";
 
 const navigation = [
-  { label: "Pátio", icon: LayoutDashboard, active: true },
-  { label: "Agenda", icon: CalendarDays },
+  { label: "Pátio", icon: LayoutDashboard, view: "patio" },
+  { label: "Agenda", icon: CalendarDays, view: "agenda" },
   { label: "OS", icon: ClipboardList },
   { label: "Clientes", icon: UsersRound },
   { label: "Veículos", icon: CarFront },
@@ -67,6 +68,7 @@ export function AutomotivePatio() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isWorkOrderOpen, setIsWorkOrderOpen] = useState(false);
+  const [activeView, setActiveView] = useState<"patio" | "agenda">("patio");
   const [notice, setNotice] = useState<string | null>(null);
   const [todayLabel] = useState(formatToday);
 
@@ -204,7 +206,7 @@ export function AutomotivePatio() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${activeView === "agenda" ? "agenda-shell" : ""}`}>
       <aside className={`navigation ${isMenuOpen ? "navigation-open" : ""}`} aria-label="Navegação principal">
         <div className="brand-mark" aria-label="Bora Marcá">
           <span>bora</span>
@@ -212,18 +214,29 @@ export function AutomotivePatio() {
         </div>
 
         <nav>
-          {navigation.map(({ label, icon: Icon, active }) => (
+          {navigation.map(({ label, icon: Icon, view }) => {
+            const active = view === activeView;
+            return (
             <button
               key={label}
               className={`nav-item ${active ? "nav-item-active" : ""}`}
               type="button"
               aria-current={active ? "page" : undefined}
-              onClick={() => !active && setNotice(`${label} será o próximo fluxo conectado à operação Automotive.`)}
+              onClick={() => {
+                if (view === "patio" || view === "agenda") {
+                  setActiveView(view);
+                  setIsMenuOpen(false);
+                  setNotice(null);
+                } else {
+                  setNotice(`${label} será o próximo fluxo conectado à operação Automotive.`);
+                }
+              }}
             >
               <Icon size={18} strokeWidth={active ? 2.3 : 1.9} />
               <span>{label}</span>
             </button>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="navigation-bottom">
@@ -251,7 +264,7 @@ export function AutomotivePatio() {
           <div className="workspace-location">
             <span>Unidade Centro</span>
             <ChevronRight size={14} />
-            <strong>Estética Automotiva</strong>
+            <strong>{activeView === "agenda" ? "Agenda" : "Estética Automotiva"}</strong>
           </div>
           <div className="topbar-actions">
             <button className="icon-button" type="button" aria-label="Buscar" onClick={() => setNotice("A busca por placa, cliente e OS será adicionada ao Pátio.")}>
@@ -279,6 +292,7 @@ export function AutomotivePatio() {
             </div>
           )}
 
+          {activeView === "agenda" ? <AutomotiveAgenda mode={mode} tenantId={tenantId} onOpenPatio={() => setActiveView("patio")} /> : <>
           <section className="patio-heading">
             <div>
               <h1>Pátio agora</h1>
@@ -357,6 +371,7 @@ export function AutomotivePatio() {
               );
             })}
           </section>
+          </>}
         </div>
       </section>
 
@@ -382,7 +397,7 @@ export function AutomotivePatio() {
             setNotice(`OS #${entry.number} aberta e posicionada em aguardando serviço.`);
           }}
         />
-      ) : (
+      ) : activeView === "patio" ? (
       <aside className={`order-detail ${selectedOrder ? "order-detail-open" : ""}`} aria-label="Detalhes da ordem de serviço">
         {selectedOrder ? (
           <>
@@ -466,7 +481,7 @@ export function AutomotivePatio() {
           </div>
         )}
       </aside>
-      )}
+      ) : null}
     </main>
   );
 }
