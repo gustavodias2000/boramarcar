@@ -11,15 +11,16 @@ O repositório foi iniciado sem código-base e sem uma cópia do Barbershop. Por
 - Gatilho de criação de perfil a partir de `auth.users`, sem duplicar credenciais no schema público.
 - Catálogo TypeScript centralizado de segmentos, labels e feature flags. A UI deve consultar `hasFeature` e `getSegmentConfig`, nunca ramificar diretamente por tipo de negócio.
 
+## Agenda transacional
+
+A segunda migration adiciona recursos de agenda, disponibilidade recorrente, bloqueios e reservas protegidas contra sobreposição no banco. Um profissional passa a ter um recurso exclusivo; futuramente, um box Automotive será outro recurso do mesmo tipo. A criação, o reagendamento e as transições de status do agendamento passam por funções transacionais, impedindo que uma gravação direta ignore a reserva de capacidade.
+
 ## Decisões deliberadamente adiadas
 
 - A interface web/mobile e a escolha do framework: não havia projeto a analisar.
-- A regra definitiva de conflito de agenda: ela precisa considerar profissionais, boxes e os requisitos do módulo Automotive antes de ser consolidada em uma constraint transacional.
 - Tabelas Automotive (veículos, boxes, preços por categoria, OS, checklist e fotos): pertencem a uma migration de módulo, depois que a fundação for aplicada e validada.
 - Planos, financeiro, notificações, Storage e permissões granulares por ação: serão migrations próprias, para manter a primeira fundação pequena e auditável.
 
 ## Aplicação e validação
 
-Quando o projeto Supabase estiver conectado, aplique a migration pelo fluxo versionado escolhido para o repositório (por exemplo, `supabase db push`). Antes de promover, teste com pelo menos dois usuários pertencentes a empresas diferentes e confirme que as operações de `select`, `insert`, `update` e `delete` não atravessam o tenant.
-
-Não há CLI Supabase, Docker ou servidor PostgreSQL disponível neste ambiente; a migration foi revisada estaticamente, mas ainda precisa ser executada contra um projeto Supabase de desenvolvimento.
+As migrations foram aplicadas e validadas contra o projeto Supabase de desenvolvimento vinculado. Antes de produção, teste com pelo menos dois usuários pertencentes a empresas diferentes e confirme que as operações de `select`, `insert`, `update` e `delete` não atravessam o tenant.
