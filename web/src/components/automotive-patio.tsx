@@ -25,18 +25,19 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { AutomotiveQuickEntry } from "@/components/automotive-quick-entry";
 import {
+  AutomotiveDataMode,
   demonstrationOrders,
   formatCurrency,
   formatTime,
+  normalizePatioOrder,
   PatioOrder,
   PatioStatus,
   patioStatusCopy,
   PATIO_STATUSES,
 } from "@/lib/automotive";
 import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/client";
-
-type DataMode = "demonstration" | "live" | "empty" | "unconfigured";
 
 const navigation = [
   { label: "Pátio", icon: LayoutDashboard, active: true },
@@ -45,15 +46,6 @@ const navigation = [
   { label: "Clientes", icon: UsersRound },
   { label: "Veículos", icon: CarFront },
 ];
-
-function normalizeOrder(order: PatioOrder): PatioOrder {
-  return {
-    ...order,
-    total_amount: Number(order.total_amount),
-    paid_amount: Number(order.paid_amount),
-    outstanding_amount: Number(order.outstanding_amount),
-  };
-}
 
 function formatToday() {
   const dateLabel = new Intl.DateTimeFormat("pt-BR", {
@@ -68,9 +60,11 @@ function formatToday() {
 export function AutomotivePatio() {
   const [orders, setOrders] = useState<PatioOrder[]>(demonstrationOrders);
   const [selectedId, setSelectedId] = useState(demonstrationOrders[1].id);
-  const [mode, setMode] = useState<DataMode>("demonstration");
+  const [mode, setMode] = useState<AutomotiveDataMode>("demonstration");
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [todayLabel] = useState(formatToday);
 
@@ -83,6 +77,7 @@ export function AutomotivePatio() {
     async function loadLivePatio() {
       if (!hasSupabaseConfiguration()) {
         setMode("unconfigured");
+        setTenantId(null);
         return;
       }
 
@@ -91,20 +86,39 @@ export function AutomotivePatio() {
 
       if (!sessionData.session) {
         setMode("demonstration");
+        setTenantId(null);
         return;
       }
 
       setIsLoading(true);
+      const { data: membership, error: membershipError } = await supabase
+        .from("business_members")
+        .select("tenant_id")
+        .eq("user_id", sessionData.session.user.id)
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (membershipError || !membership) {
+        setNotice("Não foi possível identificar a unidade ativa desta sessão.");
+        setMode("demonstration");
+        setTenantId(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setTenantId(membership.tenant_id);
       const { data, error } = await supabase
         .from("automotive_patio")
         .select("*")
+        .eq("tenant_id", membership.tenant_id)
         .order("received_at", { ascending: true });
 
       if (error) {
         setNotice(`Não foi possível carregar o Pátio: ${error.message}`);
         setMode("demonstration");
       } else {
-        const liveOrders = (data ?? []).map((order) => normalizeOrder(order as PatioOrder));
+        const liveOrders = (data ?? []).map((order) => normalizePatioOrder(order as PatioOrder));
         setOrders(liveOrders);
         setSelectedId(liveOrders[0]?.id ?? "");
         setMode(liveOrders.length ? "live" : "empty");
@@ -227,7 +241,7 @@ export function AutomotivePatio() {
               <Bell size={19} />
               <span className="notification-dot" />
             </button>
-            <button className="new-entry-button" type="button" onClick={() => setNotice("A próxima tela será a Entrada rápida por placa.")}>
+            <button className="new-entry-button" type="button" onClick={() => { setIsEntryOpen(true); setNotice(null); }}>
               <Plus size={18} />
               Nova entrada
             </button>
@@ -326,6 +340,21 @@ export function AutomotivePatio() {
         </div>
       </section>
 
+      {isEntryOpen ? (
+        <AutomotiveQuickEntry
+          mode={mode}
+          tenantId={tenantId}
+          orders={orders}
+          onClose={() => setIsEntryOpen(false)}
+          onCreated={(entry) => {
+            setOrders((current) => [entry, ...current]);
+            setSelectedId(entry.id);
+            setMode((current) => current === "empty" ? "live" : current);
+            setIsEntryOpen(false);
+            setNotice(`OS #${entry.number} aberta e posicionada em aguardando serviço.`);
+          }}
+        />
+      ) : (
       <aside className={`order-detail ${selectedOrder ? "order-detail-open" : ""}`} aria-label="Detalhes da ordem de serviço">
         {selectedOrder ? (
           <>
@@ -409,6 +438,7 @@ export function AutomotivePatio() {
           </div>
         )}
       </aside>
+      )}
     </main>
   );
 }

@@ -117,10 +117,53 @@ declare
   v_box public.automotive_boxes;
   v_appointment public.appointments;
   v_work_order public.automotive_work_orders;
+  v_walk_in_work_order public.automotive_work_orders;
+  v_walk_in_revisit public.automotive_work_orders;
   v_media public.automotive_work_order_media;
   v_resource_id uuid;
   v_storage_path text;
 begin
+  select *
+  into v_walk_in_work_order
+  from public.open_automotive_walk_in_work_order(
+    '23232323-2323-4232-8232-232323232323'::uuid,
+    'WAL-9K55',
+    'Walk-in Customer',
+    '11999999999',
+    'Fiat',
+    'Pulse',
+    'Vermelho',
+    2025,
+    1300,
+    75::smallint,
+    'Sem avarias aparentes',
+    'Entrada sem agendamento'
+  );
+
+  select *
+  into v_walk_in_revisit
+  from public.open_automotive_walk_in_work_order(
+    '23232323-2323-4232-8232-232323232323'::uuid,
+    'wal9k55'
+  );
+
+  if not exists (
+    select 1
+    from public.automotive_patio patio
+    where patio.id = v_walk_in_work_order.id
+      and patio.customer_name = 'Walk-in Customer'
+      and patio.license_plate = 'WAL-9K55'
+      and patio.status = 'awaiting_service'
+  ) then
+    raise exception 'Expected the walk-in work order to appear in the Pátio';
+  end if;
+
+  if v_walk_in_revisit.customer_id is distinct from v_walk_in_work_order.customer_id
+    or v_walk_in_revisit.vehicle_id is distinct from v_walk_in_work_order.vehicle_id
+    or (select count(*) from public.automotive_vehicles vehicle where vehicle.tenant_id = '23232323-2323-4232-8232-232323232323'::uuid and vehicle.normalized_license_plate = 'WAL9K55') <> 1 then
+    raise exception 'Expected the walk-in entry to reuse the existing vehicle and customer';
+  end if;
+
   select *
   into v_box
   from public.create_automotive_box(

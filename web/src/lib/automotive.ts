@@ -7,6 +7,8 @@ export const PATIO_STATUSES = [
 
 export type PatioStatus = (typeof PATIO_STATUSES)[number];
 
+export type AutomotiveDataMode = "demonstration" | "live" | "empty" | "unconfigured";
+
 export interface PatioOrder {
   id: string;
   tenant_id: string;
@@ -31,6 +33,55 @@ export interface PatioOrder {
   paid_amount: number | string;
   outstanding_amount: number | string;
   payment_status: "paid" | "partial" | "unpaid";
+}
+
+export interface QuickEntryDraft {
+  licensePlate: string;
+  customerName: string;
+  customerPhone: string;
+  make: string;
+  model: string;
+  color: string;
+  yearModel: string;
+  odometer: string;
+  fuelLevel: string;
+  conditionNotes: string;
+  notes: string;
+}
+
+export const initialQuickEntryDraft: QuickEntryDraft = {
+  licensePlate: "",
+  customerName: "",
+  customerPhone: "",
+  make: "",
+  model: "",
+  color: "",
+  yearModel: "",
+  odometer: "",
+  fuelLevel: "",
+  conditionNotes: "",
+  notes: "",
+};
+
+export function normalizeLicensePlate(value: string) {
+  return value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+}
+
+export function displayLicensePlate(value: string) {
+  const normalized = normalizeLicensePlate(value);
+
+  return normalized.length === 7
+    ? `${normalized.slice(0, 3)}-${normalized.slice(3)}`
+    : normalized;
+}
+
+export function normalizePatioOrder(order: PatioOrder): PatioOrder {
+  return {
+    ...order,
+    total_amount: Number(order.total_amount),
+    paid_amount: Number(order.paid_amount),
+    outstanding_amount: Number(order.outstanding_amount),
+  };
 }
 
 export const patioStatusCopy: Record<

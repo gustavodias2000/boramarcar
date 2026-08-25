@@ -1,6 +1,6 @@
 # Bora Marcá — Web
 
-Interface operacional do módulo de Estética Automotiva. A primeira superfície é o **Pátio**, onde a equipe acompanha as OS por etapa, abre seus detalhes e avança o atendimento.
+Interface operacional do módulo de Estética Automotiva. O **Pátio** acompanha as OS por etapa, abre seus detalhes e avança o atendimento. A **Entrada rápida** consulta a placa e abre uma OS para atendimento sem agendamento.
 
 ## Executar localmente
 
@@ -25,7 +25,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
 ```
 
-Após existir uma sessão autenticada, o Pátio consulta a view `automotive_patio`. Os botões de avanço chamam `transition_automotive_work_order` e `deliver_automotive_work_order`, já protegidas pelas políticas e funções do banco.
+Após existir uma sessão autenticada, o Pátio consulta a view `automotive_patio`. Os botões de avanço chamam `transition_automotive_work_order` e `deliver_automotive_work_order`; a Entrada rápida chama `open_automotive_walk_in_work_order`. Todas as operações passam pelas políticas e funções transacionais do banco.
 
 > Não use a chave `service_role` no navegador nem em qualquer variável `NEXT_PUBLIC_*`.
 
