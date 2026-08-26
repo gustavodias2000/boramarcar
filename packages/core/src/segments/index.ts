@@ -1,12 +1,24 @@
 /**
- * The segment catalog is intentionally framework-agnostic. UI, routing and
- * server code should query this catalog instead of branching on business type.
+ * Catálogo de segmentos.
+ *
+ * Este arquivo sempre declarou a intenção de ser agnóstico de framework. Até
+ * 25/08/2026 ele vivia numa raiz `src/` fora do `include` do tsconfig da web, então
+ * nunca era compilado nem importado por ninguém — a intenção estava escrita e não
+ * era estrutural.
+ *
+ * Agora vive no pacote compartilhado entre site e app (ADR 0005). O `tsconfig` deste
+ * pacote não inclui a lib "DOM": o agnosticismo passou a ser verificado pelo
+ * compilador, não prometido em comentário.
+ *
+ * A interface consulta `hasFeature` e `getSegmentConfig`. Nunca ramifica por tipo de
+ * negócio direto.
  */
 export const BUSINESS_TYPES = [
   "barbershop",
   "automotive_aesthetics",
   "beauty_salon",
   "manicure",
+  "makeup",
   "massage",
   "tattoo",
   "eyebrows",
@@ -122,6 +134,19 @@ export const SEGMENT_CONFIGS: Readonly<Record<BusinessType, SegmentConfig>> = {
       customerPlural: "Clientes",
       professional: "Nail Designer",
       professionalPlural: "Nail Designers",
+      appointment: "Agendamento",
+      appointmentPlural: "Agendamentos",
+    },
+  },
+  makeup: {
+    key: "makeup",
+    label: "Maquiagem",
+    features: CORE_FEATURES,
+    labels: {
+      customer: "Cliente",
+      customerPlural: "Clientes",
+      professional: "Maquiador",
+      professionalPlural: "Maquiadores",
       appointment: "Agendamento",
       appointmentPlural: "Agendamentos",
     },

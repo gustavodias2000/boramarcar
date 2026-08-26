@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database:
+    name: Banco — migrations e pgTAP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Aplica todas as migrations num banco limpo, depois carrega supabase/seed.sql e
+      # supabase/tests/setup/*.sql, de onde vêm o pgTAP e o esquema `tests`. Uma
+      # migration que não se aplica do zero falha aqui.
+      - name: Subir o Supabase
+        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector
+
+      # Roda supabase/tests/*.sql no pg_prove.
+      - name: Suíte pgTAP
+        run: supabase test db
+
+      - name: Parar o Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  frontend:
+    name: Núcleo e web — lint, tipos e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          # O repositório é um workspace npm: o lock da raiz cobre packages/* e web.
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      # O núcleo é compartilhado entre site e app. `typecheck` usa um tsconfig sem a
+      # lib "DOM", e `check:agnostic` recusa import de React, React Native ou Next.
+      # Ver docs/adr/0005.
+      - name: Núcleo — tipos e agnosticismo
+        run: npm run core:verify
+
+      # O Prettier é o que mantém a dívida de formatação paga: a Etapa 3.9 levou a
+      # maior linha de 5.642 para 207 caracteres.
+      - run: npm run web:format:check
+      - run: npm run web:lint
+      - run: npm run web:typecheck
+      - run: npm run web:build

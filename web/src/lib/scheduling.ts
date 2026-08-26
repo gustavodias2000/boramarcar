@@ -1,4 +1,5 @@
-export type AppointmentStatus = "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
+export type AppointmentStatus =
+  "scheduled" | "confirmed" | "in_progress" | "completed" | "cancelled";
 
 export interface ScheduleProfessional {
   id: string;
@@ -60,7 +61,12 @@ export interface SchedulingBlock {
   scheduling_resource_id: string;
   start_at: string;
   end_at: string;
-  reason: string | null;
+  /**
+   * Opcional desde a Etapa 4: o motivo saiu da tabela pública para
+   * `scheduling_block_notes`, com política própria. Sobrevive aqui só para os dados
+   * da prévia e para a atualização otimista.
+   */
+  reason?: string | null;
 }
 
 export const appointmentStatusCopy: Record<AppointmentStatus, { label: string; tone: string }> = {
@@ -91,7 +97,9 @@ export function displayScheduleDate(date: string) {
 }
 
 export function shortTime(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(
+    new Date(value),
+  );
 }
 
 export function timePart(value: string) {

@@ -1,7 +1,5 @@
-import { AutomotivePatio } from "@/components/automotive-patio";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return (
-    <AutomotivePatio />
-  );
+  redirect("/patio");
 }

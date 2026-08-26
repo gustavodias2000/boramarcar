@@ -1,0 +1,25 @@
+{
+  "name": "bora-marca",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SaaS multiempresa e multi-categoria para negocios de servicos.",
+  "workspaces": [
+    "packages/*",
+    "web"
+  ],
+  "scripts": {
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push",
+    "test:db": "supabase test db",
+    "core:typecheck": "npm --workspace @boramarca/core run typecheck",
+    "web:dev": "npm --workspace web run dev",
+    "web:lint": "npm --workspace web run lint",
+    "web:typecheck": "npm --workspace web run typecheck",
+    "web:build": "npm --workspace web run build",
+    "verify": "npm run test:db && npm run core:verify && npm run web:format:check && npm run web:lint && npm run web:typecheck && npm run web:build",
+    "core:verify": "npm --workspace @boramarca/core run verify",
+    "web:format:check": "npm --workspace web run format:check"
+  }
+}
