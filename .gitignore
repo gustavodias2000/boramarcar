@@ -22,3 +22,5 @@ npm-debug.log*
 
 # Claude Code — os subagentes gerados sao versionados; as preferencias locais nao
 .claude/settings.local.json
+backup.sql
+*.backup.sql
