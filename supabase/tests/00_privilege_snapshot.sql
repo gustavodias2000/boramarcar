@@ -185,6 +185,11 @@ select ok(
   'slugify nao e alcancavel pela API'
 );
 
+select ok(
+  not has_function_privilege('authenticated', 'public.endereco_reservado(text)', 'EXECUTE'),
+  'endereco_reservado tambem nao — a interface tem a propria copia'
+);
+
 -- Privilegio de COLUNA nao aparece em has_table_privilege(...,'UPDATE'), entao estas
 -- duas assertivas sao a unica prova de que o revoke de coluna pegou.
 select ok(

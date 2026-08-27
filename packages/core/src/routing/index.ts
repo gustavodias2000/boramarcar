@@ -20,13 +20,91 @@ export const ROTA_PADRAO = "/inicio";
 const SLUG = "[a-z0-9][a-z0-9-]{1,38}[a-z0-9]";
 
 /**
- * Rotas internas para as quais é legítimo mandar alguém depois do login.
+ * A empresa vive na RAIZ: `boramarca.com/barbearia-do-ze/agenda`.
  *
- * Lista fechada, não "qualquer caminho que comece com barra". Um destino aberto é o
- * vetor clássico de phishing: o link parece do produto, a vítima entra de verdade, e
- * sai em outro lugar já autenticada.
+ * É o padrão que as pessoas já conhecem de Instagram, Calendly e Linktree, e o endereço
+ * vai ser compartilhado por WhatsApp — cada segmento a mais é atrito real.
+ *
+ * O preço disso é concreto e está logo abaixo: o nome da empresa divide espaço de nomes
+ * com toda rota do produto. Criar `/precos` amanhã quebra a empresa que já se chame
+ * assim, e por isso `ROTAS_RESERVADAS` nasce generosa em vez de mínima. Reservar
+ * palavra que talvez nunca se use custa nada; deixar de reservar custa migração de
+ * dados e link quebrado.
  */
-const DESTINOS = new RegExp(`^/(?:e/${SLUG}(?:/.*)?|inicio|conta|comecar|e)$`);
+const DESTINOS = new RegExp(`^/(?:${SLUG})(?:/${SLUG})*$`);
+
+/**
+ * Nao ha rota `/e` para o seletor de empresa. Com a empresa na raiz ele deixou de
+ * precisar de endereco proprio: `/inicio` redireciona quando ha uma empresa so, e mostra
+ * a escolha quando ha mais de uma. Uma rota a menos, e uma palavra reservada a menos que
+ * poderia ser o nome de alguem.
+ */
+
+/**
+ * Nenhuma empresa pode se chamar assim.
+ *
+ * DUPLICADA DE PROPÓSITO em `set_business_slug` e `create_business_with_owner`, no SQL:
+ * o banco não importa TypeScript, e a recusa tem que acontecer lá, onde é autoridade.
+ * Esta cópia serve à interface, para explicar antes de o usuário enviar. **Ao mexer numa,
+ * mexa na outra** — o teste `routing.test.ts` afirma o conteúdo desta lista para que a
+ * divergência apareça.
+ */
+export const ROTAS_RESERVADAS: readonly string[] = [
+  // o que já existe
+  "e",
+  "entrar",
+  "sair",
+  "cadastro",
+  "comecar",
+  "inicio",
+  "conta",
+  "privacidade",
+  // o que provavelmente vai existir
+  "precos",
+  "planos",
+  "assinatura",
+  "cobranca",
+  "faturas",
+  "ajuda",
+  "suporte",
+  "contato",
+  "sobre",
+  "termos",
+  "blog",
+  "novidades",
+  "status",
+  "docs",
+  "painel",
+  "config",
+  "configuracoes",
+  "notificacoes",
+  "buscar",
+  "explorar",
+  "convite",
+  "onboarding",
+  // técnico e reservado por convenção da web
+  "api",
+  "admin",
+  "app",
+  "auth",
+  "login",
+  "logout",
+  "static",
+  "assets",
+  "public",
+  "_next",
+  "favicon",
+  "robots",
+  "sitemap",
+  "well-known",
+  "novo",
+  "nova",
+];
+
+/** A interface pergunta antes de enviar; o banco recusa de qualquer forma. */
+export function enderecoReservado(slug: string): boolean {
+  return ROTAS_RESERVADAS.includes(slug.trim().toLowerCase());
+}
 
 /**
  * Valida para onde o `?proximo=` pode levar.
@@ -71,7 +149,7 @@ export function destinoSeguro(bruto: string | null | undefined): string {
   const caminho = corte === -1 ? semFragmento : semFragmento.slice(0, corte);
   const query = corte === -1 ? "" : semFragmento.slice(corte);
 
-  // Travessia. `/e/loja/../../evil` normalizaria para fora da area permitida.
+  // Travessia. `/loja/../../evil` normalizaria para fora da area permitida.
   if (caminho.split("/").includes("..")) return ROTA_PADRAO;
 
   if (!DESTINOS.test(caminho)) return ROTA_PADRAO;
@@ -91,7 +169,10 @@ function temCaractereProibido(valor: string): boolean {
 // ---------------------------------------------------------------------------
 
 /** A ordem em que a navegação aparece. A primeira visível é a rota inicial. */
-const NAVEGACAO: readonly { readonly caminho: string; readonly feature: FeatureKey }[] = [
+const NAVEGACAO: readonly {
+  readonly caminho: string;
+  readonly feature: FeatureKey;
+}[] = [
   { caminho: "patio", feature: "workOrders" },
   { caminho: "agenda", feature: "appointments" },
   { caminho: "clientes", feature: "customers" },
@@ -109,17 +190,22 @@ const NAVEGACAO: readonly { readonly caminho: string; readonly feature: FeatureK
  * produto a redirecionar para `/patio` sem saber de que categoria era a empresa.
  */
 export function rotaInicialDoSegmento(businessType: BusinessType): string {
-  const primeira = NAVEGACAO.find((item) => hasFeature(businessType, item.feature));
+  const primeira = NAVEGACAO.find((item) =>
+    hasFeature(businessType, item.feature),
+  );
   return primeira ? primeira.caminho : "conta";
 }
 
-/** `/e/barbearia-do-ze/agenda` */
+/** `/barbearia-do-ze/agenda` */
 export function rotaDaEmpresa(slug: string, caminho?: string): string {
-  return caminho ? `/e/${slug}/${caminho}` : `/e/${slug}`;
+  return caminho ? `/${slug}/${caminho}` : `/${slug}`;
 }
 
 /** Para onde levar quem entrou, dada a empresa ativa. */
-export function rotaInicialDaEmpresa(slug: string, businessType: BusinessType): string {
+export function rotaInicialDaEmpresa(
+  slug: string,
+  businessType: BusinessType,
+): string {
   return rotaDaEmpresa(slug, rotaInicialDoSegmento(businessType));
 }
 
@@ -131,8 +217,12 @@ export function rotaInicialDaEmpresa(slug: string, businessType: BusinessType): 
  * "não encontrei o item de menu" como permitido, e a primeira rota sem item de menu
  * teria entrado sem guarda nenhuma.
  */
-export function rotaPermitida(businessType: BusinessType, caminho: string): boolean {
-  if (caminho === "" || caminho === "conta" || caminho === "privacidade") return true;
+export function rotaPermitida(
+  businessType: BusinessType,
+  caminho: string,
+): boolean {
+  if (caminho === "" || caminho === "conta" || caminho === "privacidade")
+    return true;
   const item = NAVEGACAO.find((entrada) => entrada.caminho === caminho);
   return item ? hasFeature(businessType, item.feature) : false;
 }
@@ -140,14 +230,19 @@ export function rotaPermitida(businessType: BusinessType, caminho: string): bool
 /** Os itens de menu desta categoria, na ordem, já com o rótulo resolvido. */
 export function navegacaoDoSegmento(businessType: BusinessType) {
   const config = getSegmentConfig(businessType);
-  return NAVEGACAO.filter((item) => hasFeature(businessType, item.feature)).map((item) => ({
-    caminho: item.caminho,
-    feature: item.feature,
-    rotulo: rotuloDaRota(item.caminho, config.labels),
-  }));
+  return NAVEGACAO.filter((item) => hasFeature(businessType, item.feature)).map(
+    (item) => ({
+      caminho: item.caminho,
+      feature: item.feature,
+      rotulo: rotuloDaRota(item.caminho, config.labels),
+    }),
+  );
 }
 
-function rotuloDaRota(caminho: string, labels: ReturnType<typeof getSegmentConfig>["labels"]) {
+function rotuloDaRota(
+  caminho: string,
+  labels: ReturnType<typeof getSegmentConfig>["labels"],
+) {
   switch (caminho) {
     case "patio":
       return "Pátio";

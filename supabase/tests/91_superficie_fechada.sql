@@ -120,6 +120,56 @@ select lives_ok(
   'control — renomear a empresa continua permitido'
 );
 
+-- A empresa vive na RAIZ da URL, entao o nome dela divide espaco com toda rota de
+-- produto. Uma empresa chamada "Suporte" quebraria `/suporte` no dia em que ele existir.
+select results_eq(
+  $$ select public.endereco_reservado('suporte'),
+            public.endereco_reservado('precos'),
+            public.endereco_reservado('barbearia-do-ze') $$,
+  $$ values (true, true, false) $$,
+  'a lista reservada cobre o que existe E o que provavelmente vai existir'
+);
+
+select throws_ok(
+  $$ select public.set_business_slug(
+       (select id from public.businesses where name = 'Barbearia Dois'), 'precos') $$,
+  '22023'::char(5),
+  'Este endereço é reservado. Escolha outro.',
+  'nao se toma um endereco reservado'
+);
+
+-- Recusar a abertura seria pior que um endereco feio: a empresa chamada "Suporte" existe
+-- de verdade e precisa entrar.
+--
+-- Usuario NOVO de proposito: o anterior ja esgotou a janela de tres por hora acima, e
+-- reaproveita-lo faria este teste falhar pelo motivo errado.
+select tests.clear_auth();
+
+do $$
+begin
+  perform set_config('tests.dono_suporte',
+    tests.create_user('suporte-' || gen_random_uuid() || '@example.invalid')::text, true);
+end;
+$$;
+
+select tests.act_as(current_setting('tests.dono_suporte')::uuid);
+
+do $$
+declare
+  v_business public.businesses;
+begin
+  select * into v_business
+  from public.create_business_with_owner('Suporte', 'barbershop');
+  perform set_config('tests.reservada', v_business.slug, true);
+end;
+$$;
+
+select ok(
+  current_setting('tests.reservada') like 'suporte-%'
+    and current_setting('tests.reservada') <> 'suporte',
+  'nome que colide com rota reservada ganha sufixo, e a empresa abre assim mesmo'
+);
+
 -- ---------------------------------------------------------------------------
 -- A agenda deixa de ser legivel por qualquer membro
 -- ---------------------------------------------------------------------------

@@ -15,7 +15,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  ROTAS_RESERVADAS,
   ROTA_PADRAO,
+  enderecoReservado,
   destinoSeguro,
   navegacaoDoSegmento,
   rotaDaEmpresa,
@@ -43,9 +45,9 @@ const HOSTIS = [
   ["quatro barras", "////evil.tld"],
   ["ponto e arroba", "/.evil.tld\\@x"],
   ["encode malformado", "/%"],
-  ["rota fora da lista", "/qualquer-coisa"],
-  ["rota de outro produto", "/admin"],
-  ["travessia", "/e/loja/../../evil"],
+  ["segmento com caractere invalido", "/Loja_Maiuscula"],
+  ["barra final vazia", "/loja//agenda"],
+  ["travessia", "/loja/../../evil"],
   ["vazio", ""],
   ["nulo", null],
 ];
@@ -69,17 +71,20 @@ test("aceita a rota padrao", () => {
 });
 
 test("aceita a empresa — e o hifen do slug nao pode ser recusado", () => {
-  assert.equal(destinoSeguro("/e/barbearia-do-ze"), "/e/barbearia-do-ze");
+  assert.equal(destinoSeguro("/barbearia-do-ze"), "/barbearia-do-ze");
 });
 
 test("aceita rota dentro da empresa", () => {
-  assert.equal(destinoSeguro("/e/barbearia-do-ze/agenda"), "/e/barbearia-do-ze/agenda");
+  assert.equal(
+    destinoSeguro("/barbearia-do-ze/agenda"),
+    "/barbearia-do-ze/agenda",
+  );
 });
 
 test("preserva a query — e o dia que a pessoa estava olhando", () => {
   assert.equal(
-    destinoSeguro("/e/salao-da-ana/agenda?dia=2026-08-26"),
-    "/e/salao-da-ana/agenda?dia=2026-08-26",
+    destinoSeguro("/salao-da-ana/agenda?dia=2026-08-26"),
+    "/salao-da-ana/agenda?dia=2026-08-26",
   );
 });
 
@@ -94,8 +99,11 @@ test("o arroba no fragmento morre com o fragmento, e a query sobrevive", () => {
   assert.equal(destinoSeguro("/inicio?x=1#@evil.tld"), "/inicio?x=1");
 });
 
-test("aceita o seletor de empresa", () => {
-  assert.equal(destinoSeguro("/e"), "/e");
+test("a empresa vive na raiz, sem prefixo", () => {
+  assert.equal(
+    rotaDaEmpresa("barbearia-do-ze", "agenda"),
+    "/barbearia-do-ze/agenda",
+  );
 });
 
 test("aceita o valor ja codificado uma vez", () => {
@@ -160,7 +168,9 @@ test("a navegacao usa o rotulo da categoria, nao um literal", () => {
 });
 
 test("a barbearia nao recebe item de menu automotivo", () => {
-  const caminhos = navegacaoDoSegmento("barbershop").map((item) => item.caminho);
+  const caminhos = navegacaoDoSegmento("barbershop").map(
+    (item) => item.caminho,
+  );
   assert.deepEqual(
     caminhos.filter((c) => ["patio", "boxes", "veiculos"].includes(c)),
     [],
@@ -168,19 +178,85 @@ test("a barbearia nao recebe item de menu automotivo", () => {
 });
 
 test("rotaDaEmpresa monta o endereco", () => {
-  assert.equal(rotaDaEmpresa("barbearia-do-ze", "agenda"), "/e/barbearia-do-ze/agenda");
-  assert.equal(rotaDaEmpresa("barbearia-do-ze"), "/e/barbearia-do-ze");
+  assert.equal(
+    rotaDaEmpresa("barbearia-do-ze", "agenda"),
+    "/barbearia-do-ze/agenda",
+  );
+  assert.equal(rotaDaEmpresa("barbearia-do-ze"), "/barbearia-do-ze");
 });
 
 test("rotaInicialDaEmpresa junta as duas coisas", () => {
-  assert.equal(rotaInicialDaEmpresa("estetica-x", "automotive_aesthetics"), "/e/estetica-x/patio");
-  assert.equal(rotaInicialDaEmpresa("barbearia-do-ze", "barbershop"), "/e/barbearia-do-ze/agenda");
+  assert.equal(
+    rotaInicialDaEmpresa("estetica-x", "automotive_aesthetics"),
+    "/estetica-x/patio",
+  );
+  assert.equal(
+    rotaInicialDaEmpresa("barbearia-do-ze", "barbershop"),
+    "/barbearia-do-ze/agenda",
+  );
 });
 
 // O que sai daqui tem que ser sempre aceitavel na volta.
 test("toda rota que o produto gera passa por destinoSeguro", () => {
-  for (const tipo of ["barbershop", "automotive_aesthetics", "petshop"] as const) {
+  for (const tipo of [
+    "barbershop",
+    "automotive_aesthetics",
+    "petshop",
+  ] as const) {
     const rota = rotaInicialDaEmpresa("empresa-teste", tipo);
     assert.equal(destinoSeguro(rota), rota, tipo);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Palavras reservadas — o preco de por a empresa na raiz
+// ---------------------------------------------------------------------------
+
+test("toda rota de produto que existe hoje esta reservada", () => {
+  for (const rota of [
+    "entrar",
+    "cadastro",
+    "comecar",
+    "inicio",
+    "conta",
+    "privacidade",
+  ]) {
+    assert.equal(enderecoReservado(rota), true, rota);
+  }
+});
+
+test("as rotas de produto que provavelmente virao tambem estao", () => {
+  for (const rota of [
+    "precos",
+    "planos",
+    "ajuda",
+    "suporte",
+    "termos",
+    "api",
+    "admin",
+  ]) {
+    assert.equal(enderecoReservado(rota), true, rota);
+  }
+});
+
+test("reservar nao e sensivel a caixa nem a espaco", () => {
+  assert.equal(enderecoReservado("  ENTRAR "), true);
+});
+
+test("nome de empresa de verdade nao e reservado", () => {
+  for (const nome of [
+    "barbearia-do-ze",
+    "salao-da-ana",
+    "estetica-x",
+    "pet-feliz",
+  ]) {
+    assert.equal(enderecoReservado(nome), false, nome);
+  }
+});
+
+// Este numero existe para doer quando alguem acrescentar rota de produto e esquecer de
+// reservar o nome. A lista do SQL (`set_business_slug`, `create_business_with_owner`)
+// precisa casar com esta.
+test("a lista tem o tamanho que o SQL espelha", () => {
+  assert.equal(ROTAS_RESERVADAS.length, 46);
 });

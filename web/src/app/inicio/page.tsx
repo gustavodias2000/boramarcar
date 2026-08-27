@@ -40,13 +40,16 @@ export default async function Inicio() {
     redirect("/comecar");
   }
 
-  // Mais de uma empresa: o seletor. Ele chega junto com as rotas `/e/[empresa]`; até lá,
-  // a primeira ativa é o destino — o que já é melhor que o `.limit(1)` anterior, porque
-  // agora as outras estão carregadas e visíveis para quem for construir a tela.
+  // Com mais de uma empresa, esta tela mostra a escolha em vez de redirecionar — e é
+  // por isso que o seletor não ganhou rota própria. Até a tela existir, a primeira ativa
+  // é o destino, o que já é melhor que o `.limit(1)` anterior: as outras estão
+  // carregadas e visíveis para quem for construí-la.
   const empresa = empresas[0]!;
 
-  // TODO(rotas): quando `/e/[empresa]` existir, isto vira
-  // `rotaInicialDaEmpresa(empresa.slug, empresa.businessType)`. É uma linha, e o slug
-  // já está no banco esperando por ela.
+  // TODO(rotas): quando `/[empresa]` existir, isto vira
+  // `rotaInicialDaEmpresa(empresa.slug, empresa.businessType)` — que já está escrita e
+  // testada no núcleo. As rotas atuais (`/agenda`, `/patio`) precisam sair no mesmo
+  // movimento: sendo segmentos estáticos, elas venceriam o `[empresa]` dinâmico e
+  // nenhuma empresa com esse nome seria alcançável.
   redirect(`/${rotaInicialDoSegmento(empresa.businessType as BusinessType)}`);
 }
