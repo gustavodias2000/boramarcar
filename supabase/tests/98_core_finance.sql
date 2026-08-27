@@ -214,6 +214,15 @@ select results_eq(
 -- ---------------------------------------------------------------------------
 -- Sem isto haveria duas verdades sobre o mesmo dinheiro.
 
+-- `build_tenant` chama `tests.create_user`, que grava em `auth.users`. Ele e SECURITY
+-- INVOKER DE PROPOSITO: dar a ele privilegio proprio seria abrir a criacao de usuario
+-- para quem executa. Entao a fixture precisa da sessao original, e a linha 157 acima
+-- deixou a sessao como `owner`.
+--
+-- Sem isto o CI acusa "permission denied for table users" — e o arquivo inteiro aborta
+-- antes de emitir o plano, virando um "No plan found" que parece outro defeito.
+select tests.clear_auth();
+
 do $$
 declare
   a jsonb := tests.build_tenant('caixa-auto', 'automotive_aesthetics');
