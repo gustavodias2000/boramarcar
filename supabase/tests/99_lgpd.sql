@@ -540,10 +540,34 @@ select is_empty(
   'e nao sobra OS orfa apontando para uma empresa que nao existe mais'
 );
 
--- A outra empresa nao foi tocada: a exclusao respeita a fronteira do tenant.
+-- A EMPRESA VIZINHA — e aqui ha DUAS coisas para provar, que nao podem ser a mesma
+-- asercao.
+--
+-- A versao anterior perguntava pela vizinha ainda atuando como o dono da empresa
+-- excluida, e falhava. Falhava CERTO: aquele usuario nunca teve vinculo com a vizinha,
+-- entao a RLS filtra a linha. Confundir "eu nao consigo ver" com "nao existe" e o erro
+-- classico de testar isolamento, e ele mascara os dois fatos ao mesmo tempo.
+
+-- 1) Quem excluiu a propria empresa nao passa a enxergar a do vizinho.
+select is_empty(
+  $$ select id from public.businesses where id = current_setting('tests.other_tenant')::uuid $$,
+  'quem nao tem vinculo nao enxerga a empresa vizinha — nem depois de perder a propria'
+);
+
+-- 2) E a vizinha continua existindo, verificado por quem tem direito de olhar: ela
+--    mesma. Sem esta segunda metade, a asercao acima seria compativel com a exclusao
+--    ter levado a vizinha junto.
+select tests.clear_auth();
+select tests.act_as(current_setting('tests.other_owner')::uuid);
+
 select isnt_empty(
   $$ select id from public.businesses where id = current_setting('tests.other_tenant')::uuid $$,
-  'control — a empresa vizinha continua intacta'
+  'control — a empresa vizinha continua intacta, vista pelo proprio dono dela'
+);
+
+select isnt_empty(
+  $$ select id from public.customers where tenant_id = current_setting('tests.other_tenant')::uuid $$,
+  'e os dados dela tambem: a exclusao respeitou a fronteira do tenant'
 );
 
 select tests.clear_auth();
