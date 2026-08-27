@@ -126,7 +126,9 @@ C-13, C-14 na Etapa 2 — viraram asserções obrigatórias quando as causas for
 
 ### Por que pgTAP não está numa migration
 
-O scaffolding fica em `supabase/tests/setup/`, carregado por `[db.seed] sql_paths`. Seeds
+O scaffolding fica em `supabase/fixtures/`, carregado por `[db.seed] sql_paths`. Fica **fora**
+de `supabase/tests/` porque `supabase test db` varre esse diretório recursivamente: enquanto
+morava em `tests/setup/`, o arquivo era carregado como seed **e** rodado como teste. Seeds
 rodam em `db reset` e **nunca** em `db push`, então o esquema `tests` e as ~1000 funções do
 pgTAP não chegam a um projeto publicado. Isso importa: a Etapa 1 adiciona um teste que
 afirma exatamente quais funções são executáveis em produção.
@@ -164,7 +166,7 @@ packages/core/   núcleo compartilhado entre site e app — sem React, sem RN, s
 supabase/
   migrations/    schema, RLS, funções transacionais
   tests/         suíte pgTAP
-  tests/setup/   pgTAP + fixtures (somente local)
+  fixtures/      pgTAP + fixtures de teste (somente local, fora do glob de testes)
   seed.sql       ponto de entrada de seed local
 web/             aplicação Next.js, consome @boramarca/core
 docs/            contexto, especificações, ADRs, auditoria e plano
