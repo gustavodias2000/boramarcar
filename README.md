@@ -7,7 +7,7 @@ funções transacionais.
 | | |
 | --- | --- |
 | Banco | Supabase · PostgreSQL · RLS · Storage privado |
-| Web | Next.js 16 · React 19 · Tailwind 4 |
+| Web | Next.js 16 · React 19 · CSS próprio (Tailwind entra só pelo reset) |
 | Testes | pgTAP via `supabase test db` |
 
 ---
@@ -36,9 +36,9 @@ npm ci
 npm run dev
 ```
 
-Sem `.env.local`, a interface sobe em **prévia demonstrativa**: dados fabricados, nenhuma
-gravação. Com `.env.local` e uma conta, a aplicação leva você a `/comecar` para abrir a
-empresa — e a prévia deixa de ser necessária.
+A raiz `/` é a **landing pública** e não depende de configuração. `/entrar` explica quando
+falta `.env.local`. As telas de operação ainda sobem em prévia demonstrativa sem
+configuração — andaime que sai quando o shell for extraído.
 
 ---
 
@@ -64,6 +64,9 @@ insert into public.business_members (tenant_id, user_id, role)
 values ('<tenant-id-retornado>', '<user-uuid>', 'owner');
 ```
 
+> Isto só funciona com acesso direto ao banco (Studio, psql, `service_role`), que ignora
+> RLS. Pela API pública não funciona mais — ver abaixo.
+
 `business_type` aceita onze valores: `barbershop`, `automotive_aesthetics`, `beauty_salon`,
 `manicure`, `makeup`, `massage`, `tattoo`, `eyebrows`, `aesthetics`, `depilation`, `petshop`.
 A interface se adapta a todos — o que muda por categoria são os recursos habilitados, os
@@ -71,17 +74,16 @@ rótulos e o catálogo inicial de serviços.
 
 ### Caminho da aplicação (autenticado, sob RLS)
 
-As políticas já permitem que o próprio usuário faça o bootstrap, então isso funciona pela
-API pública sem `service_role`:
+**Existe um caminho só: a RPC `create_business_with_owner`.** Ela cria empresa, endereço,
+posse, catálogo da categoria, o dono como primeiro profissional e a disponibilidade padrão
+— tudo numa transação. É o que a tela `/comecar` chama.
 
-1. `insert into businesses` com `created_by = auth.uid()` — permitido por
-   `businesses_insert_creator_only`;
-2. `insert into business_members` com o próprio `user_id` e papel `owner` — permitido por
-   `can_claim_initial_tenant_owner`, que só aceita a reivindicação enquanto a empresa não
-   tiver nenhum membro.
-
-É exatamente este fluxo que a tela `/comecar` executa, pela RPC
-`create_business_with_owner` — empresa, posse e catálogo numa transação só.
+O `INSERT` direto em `businesses` foi **revogado** em 26/08/2026, junto com a política
+`businesses_insert_creator_only` e a função `can_claim_initial_tenant_owner`. O motivo é
+que o limite por conta (5 empresas, 3 por hora) mora dentro da RPC, e um caminho paralelo
+que não passa por ele torna o limite decorativo. O caminho direto também permitia criar
+empresa **sem dono**: inserir a linha e nunca criar o vínculo deixava um registro que
+ninguém administra.
 
 ---
 
@@ -106,6 +108,7 @@ Os testes vivem em `supabase/tests/` e rodam em ordem alfabética:
 | `70_block_notes_and_ratings.sql` | motivo de bloqueio como dado privado, avaliação de atendimento |
 | `80_recurrence_waitlist_links.sql` | recorrência, lista de espera, convite e vínculo do cliente |
 | `90_business_onboarding.sql` | abertura de empresa e catálogo por categoria |
+| `91_superficie_fechada.sql` | limite de empresas, endereço, agenda segregada por profissional |
 | `95_agenda_patio_bridge.sql` | atribuir técnico e box, editar box, disponibilidade por RPC |
 | `97_new_categories.sql` | manicure, salão e maquiagem de ponta a ponta, sem vazamento automotivo |
 | `98_core_finance.sql` | caixa, livro financeiro, comissão e espelhamento do pagamento da OS |
@@ -182,7 +185,8 @@ docs/            contexto, especificações, ADRs, auditoria e plano
 | **[CONTEXTO_MESTRE_BORA_MARCA.md](CONTEXTO_MESTRE_BORA_MARCA.md)** | **a fonte funcional e arquitetural do produto — leia primeiro** |
 | [CONTEXT.md](CONTEXT.md) | glossário: Agendamento, Entrada, OS, Pátio, Box, Entrega |
 | [PRODUCT.md](PRODUCT.md) | produto, usuários, restrições |
-| [DESIGN.md](DESIGN.md) | direção visual e componentes de operação |
+| [DESIGN.md](DESIGN.md) | sistema de design do produto — serve as onze categorias |
+| [docs/design-modulo-automotivo.md](docs/design-modulo-automotivo.md) | o tema da operação automotiva: prancheta de boxes |
 | [docs/foundation.md](docs/foundation.md) | decisões da fundação |
 | [docs/automotive-operating-spec.md](docs/automotive-operating-spec.md) | especificação da operação automotiva |
 | [docs/adr/](docs/adr/) | decisões arquiteturais registradas |

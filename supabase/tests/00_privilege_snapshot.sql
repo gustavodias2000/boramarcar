@@ -118,7 +118,6 @@ select set_eq(
       ('is_tenant_finance_operator'),
       ('is_current_user_professional'),
       ('is_automotive_business'),
-      ('can_claim_initial_tenant_owner'),
       ('can_read_automotive_work_order_media_object'),
       ('can_manage_automotive_work_order_media_object'),
       -- scheduling
