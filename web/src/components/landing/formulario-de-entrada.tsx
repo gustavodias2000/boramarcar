@@ -62,7 +62,10 @@ export function FormularioDeEntrada() {
     // O `?proximo=` é validado na LEITURA, não na escrita: quem escreve o parâmetro é o
     // produto, quem manda o link pronto é o atacante. `destinoSeguro` vive no núcleo e
     // tem uma implementação só — duas divergem, e a que divergir é a explorada.
-    router.replace(destinoSeguro(searchParams.get("proximo")));
+    // Sem destino explicito, o caminho e a escolha de perfil: quem entra pode ser
+    // empresario ou cliente, e o produto nao presume.
+    const proximo = searchParams.get("proximo");
+    router.replace(proximo ? destinoSeguro(proximo) : "/perfil");
   }
 
   if (!configurado) {

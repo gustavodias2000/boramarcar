@@ -2,6 +2,7 @@ import { ArrowRight, Ban, Building2, Lock, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 import { SegmentSwitch } from "@/components/landing/segment-switch";
+import { MARCA } from "@/core/marca";
 import { BUSINESS_TYPES } from "@boramarca/core";
 
 /**
@@ -157,7 +158,7 @@ export default function Landing() {
       <section className="lp-honest">
         <h2>O que ainda não existe.</h2>
         <p>
-          O Bora Marcá está em construção e não tem cliente em operação. Preferimos dizer isso a
+          O {MARCA.nome} está em construção e não tem cliente em operação. Preferimos dizer isso a
           publicar número inventado — se você encontrar depoimento, nota ou faturamento em página de
           produto novo, desconfie.
         </p>

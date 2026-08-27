@@ -19,6 +19,14 @@ export {
   hasFeature,
 } from "./segments/index";
 
+export {
+  CATALOGO,
+  categoriaPorId,
+  categoriasDisponiveis,
+} from "./segments/catalogo";
+
+export type { CategoriaDoCatalogo } from "./segments/catalogo";
+
 export type {
   BusinessType,
   FeatureKey,

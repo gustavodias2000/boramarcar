@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { MARCA } from "@/core/marca";
 import type { ReactNode } from "react";
 
 /**
@@ -12,11 +14,10 @@ export default function PublicoLayout({ children }: { children: ReactNode }) {
   return (
     <div className="pub">
       <header className="pub-top">
-        <Link href="/" className="pub-brand" aria-label="Bora Marcá, página inicial">
-          {/* O nome é provisório e vive num ponto só — trocar é uma linha. */}
+        <Link href="/" className="pub-brand" aria-label={`${MARCA.nome}, página inicial`}>
           <span className="pub-brand-mark" aria-hidden />
           <span className="pub-brand-name">
-            bora <strong>marcá</strong>
+            {MARCA.logo.leve} <strong>{MARCA.logo.forte}</strong>
           </span>
         </Link>
 
@@ -34,9 +35,9 @@ export default function PublicoLayout({ children }: { children: ReactNode }) {
 
       <footer className="pub-foot">
         <p className="pub-foot-name">
-          bora <strong>marcá</strong>
+          {MARCA.logo.leve} <strong>{MARCA.logo.forte}</strong>
         </p>
-        <p className="pub-foot-note">Agenda e gestão para negócios de serviço. Feito no Brasil.</p>
+        <p className="pub-foot-note">{MARCA.descricao}. Feito no Brasil.</p>
       </footer>
     </div>
   );

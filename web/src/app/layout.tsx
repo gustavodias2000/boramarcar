@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Archivo } from "next/font/google";
 
+import { MARCA } from "@/core/marca";
+
 import "./globals.css";
 
 /**
@@ -18,8 +20,8 @@ const archivo = Archivo({
 
 export const metadata: Metadata = {
   title: {
-    default: "Bora Marcá — agenda e gestão para negócios de serviço",
-    template: "%s · Bora Marcá",
+    default: `${MARCA.nome} — ${MARCA.descricao.toLowerCase()}`,
+    template: `%s · ${MARCA.curto}`,
   },
   description:
     "Agenda, clientes, serviços, equipe e caixa para barbearia, salão, manicure, " +

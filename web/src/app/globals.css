@@ -5113,3 +5113,210 @@ h1 {
     transition: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Perfil e segmento — o funil entre entrar e operar
+   -------------------------------------------------------------------------- */
+
+.perfil,
+.seg {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px 20px 72px;
+}
+
+.perfil h1,
+.seg h1 {
+  font-size: clamp(25px, 6vw, 34px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.perfil-sub,
+.seg-sub {
+  max-width: 56ch;
+  margin-top: 10px;
+  color: var(--bm-tinta-media);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* --------------------------------------------------------------------------
+   Perfil
+   -------------------------------------------------------------------------- */
+
+.perfil-opcoes {
+  display: grid;
+  gap: 14px;
+  margin-top: 30px;
+}
+
+.perfil-card {
+  display: grid;
+  gap: 6px;
+  padding: 22px;
+  border: 1px solid var(--bm-borda);
+  border-radius: var(--bm-r-xl);
+  background: #fff;
+  box-shadow: var(--bm-sombra);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 140ms ease-out,
+    box-shadow 140ms ease-out;
+}
+a.perfil-card:hover {
+  border-color: var(--bm-indigo);
+  box-shadow: var(--bm-sombra-alta);
+}
+
+.perfil-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--bm-r);
+  background: var(--bm-indigo-claro);
+  color: var(--bm-indigo);
+}
+.perfil-card strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.perfil-desc {
+  max-width: 52ch;
+  color: var(--bm-tinta-media);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+.perfil-nota {
+  margin-top: 6px;
+  color: var(--bm-tinta-media);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Fechado é fechado: sem sombra, sem hover, sem convite a clicar. */
+.perfil-card-breve {
+  background: var(--bm-fundo-suave);
+  box-shadow: none;
+}
+.perfil-card-breve .perfil-icone {
+  background: #eef1f5;
+  color: var(--bm-tinta-media);
+}
+.perfil-card-breve strong {
+  color: var(--bm-tinta-media);
+}
+
+.perfil-tag,
+.seg-tag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #52606d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   Segmento
+   -------------------------------------------------------------------------- */
+
+.seg-grade {
+  display: grid;
+  gap: 12px;
+  margin-top: 30px;
+  list-style: none;
+}
+
+.seg-card {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px;
+  border: 1px solid var(--bm-borda);
+  border-radius: var(--bm-r-lg);
+  background: var(--bm-fundo-suave);
+  text-decoration: none;
+  color: inherit;
+  min-height: 46px;
+}
+
+/* A disponível é a única que parece clicável, porque é a única que é. */
+.seg-card-on {
+  background: #fff;
+  border-color: var(--bm-indigo-claro);
+  box-shadow: var(--bm-sombra);
+  transition:
+    border-color 140ms ease-out,
+    box-shadow 140ms ease-out;
+}
+a.seg-card-on:hover {
+  border-color: var(--bm-indigo);
+  box-shadow: var(--bm-sombra-alta);
+}
+
+.seg-nome {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.seg-card[aria-disabled="true"] .seg-nome,
+.seg-card[aria-disabled="true"] .seg-desc {
+  color: var(--bm-tinta-media);
+}
+.seg-desc {
+  color: var(--bm-tinta-media);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.seg-tag-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #dcfce7;
+  color: #05684a;
+}
+
+.seg-rodape {
+  margin-top: 26px;
+  color: var(--bm-tinta-media);
+  font-size: 14px;
+}
+.seg-rodape a,
+.perfil a:not(.perfil-card) {
+  color: var(--bm-indigo);
+  font-weight: 600;
+}
+
+@media (min-width: 700px) {
+  .perfil,
+  .seg {
+    padding-inline: 32px;
+  }
+  .perfil-opcoes {
+    grid-template-columns: 1fr 1fr;
+  }
+  .seg-grade {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .perfil-card,
+  .seg-card-on {
+    transition: none;
+  }
+}

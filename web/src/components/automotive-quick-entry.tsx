@@ -22,6 +22,7 @@ import {
   QuickEntryDraft,
 } from "@/lib/automotive";
 import { demonstrationOrders } from "@/demo/automotive";
+import { MARCA } from "@/core/marca";
 import { createClient } from "@/lib/supabase/client";
 
 type LookupState = "idle" | "loading" | "found" | "new" | "error";
@@ -395,7 +396,7 @@ export function AutomotiveQuickEntry({
           </div>
           <h2>Entrada rápida</h2>
           <p>
-            Comece pela placa. O Bora Marcá encontra o veículo ou prepara o primeiro cadastro e a
+            Comece pela placa. O {MARCA.nome} encontra o veículo ou prepara o primeiro cadastro e a
             OS.
           </p>
         </div>

@@ -48,6 +48,7 @@ import { listPatioOrders } from "@boramarca/core";
 import { demonstrationOrders } from "@/demo/automotive";
 import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/client";
 import { type FeatureKey } from "@boramarca/core";
+import { MARCA } from "@/core/marca";
 import { useSegment } from "@/core/segment";
 import { useTenant } from "@/core/tenant";
 
@@ -341,9 +342,9 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
           className={`navigation ${isMenuOpen ? "navigation-open" : ""}`}
           aria-label="Navegação principal"
         >
-          <div className="brand-mark" aria-label="Bora Marcá">
-            <span>bora</span>
-            <strong>marcá</strong>
+          <div className="brand-mark" aria-label={MARCA.nome}>
+            <span>{MARCA.logo.leve}</span>
+            <strong>{MARCA.logo.forte}</strong>
           </div>
 
           <nav>

@@ -16,6 +16,7 @@ import {
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { CorePrivacy } from "@/components/core-privacy";
+import { MARCA } from "@/core/marca";
 import { createClient } from "@/lib/supabase/client";
 import { rolesWith, type BusinessRole } from "@boramarca/core";
 type AccountState =
@@ -103,7 +104,7 @@ function initials(value: string) {
 }
 
 function profileFallback(email: string) {
-  return email.split("@")[0]?.replace(/[._-]+/g, " ") || "Conta Bora Marcá";
+  return email.split("@")[0]?.replace(/[._-]+/g, " ") || `Conta ${MARCA.nome}`;
 }
 
 interface AutomotiveProfileProps {
@@ -347,7 +348,7 @@ export function AutomotiveProfile({
           <div className="account-auth-rule">
             <BadgeCheck size={17} />
             <span>
-              O Bora Marcá não cria permissões no navegador: o Supabase valida cada operação.
+              O {MARCA.nome} não cria permissões no navegador: o Supabase valida cada operação.
             </span>
           </div>
         </div>
