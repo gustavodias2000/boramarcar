@@ -31,10 +31,15 @@ import {
  * automotivos. O padrão explicita isso em vez de deixar a tela sem segmento —
  * mas é padrão de PRÉVIA, não do produto: com sessão, o tipo vem do banco.
  */
-const SEGMENTO_DA_PREVIA: BusinessType = "automotive_aesthetics";
+// Era `automotive_aesthetics`, e esse era o unico ponto do codigo onde uma categoria
+// era PRESUMIDA em vez de lida. Com Barbeiro como a categoria de abertura, presumir a
+// automotiva fazia o primeiro quadro pintar o shell errado para todo mundo.
+const SEGMENTO_DA_PREVIA: BusinessType = "barbershop";
 
 interface SegmentValue {
   readonly config: SegmentConfig;
+  /** O nome da categoria: "Barbearia", "Salão de Beleza". Para dizer "a sua barbearia". */
+  readonly label: string;
   readonly labels: SegmentConfig["labels"];
   readonly hasFeature: (feature: FeatureKey) => boolean;
   /** `true` quando o tipo veio do banco; `false` quando é o padrão da prévia. */
@@ -51,6 +56,7 @@ export function resolveSegment(businessType: BusinessType | null): SegmentValue 
 
   return {
     config,
+    label: config.label,
     labels: config.labels,
     hasFeature: (feature: FeatureKey) => coreHasFeature(tipo, feature),
     resolved: businessType !== null,

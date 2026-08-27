@@ -5320,3 +5320,324 @@ a.seg-card-on:hover {
     transition: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Listas de operação — clientes e serviços
+   --------------------------------------------------------------------------
+   Densidade de LINHA, não de cartão. Quarenta clientes dentro de quarenta cartões
+   viram parede; é a regra de densidade dupla do DESIGN.md aplicada.
+   -------------------------------------------------------------------------- */
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 32px;
+}
+
+.lista-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lista-topo h1 {
+  font-size: clamp(21px, 5vw, 27px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.lista-topo p {
+  margin-top: 4px;
+  color: #65726b;
+  font-size: 13.5px;
+}
+
+.lista-acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.lista-acao:hover {
+  background: #0d1512;
+}
+
+.lista-erro,
+.lista-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.lista-erro {
+  border: 1px solid #d99a93;
+  background: #fdf0ee;
+  color: #8a2b22;
+}
+.lista-aviso {
+  border: 1px solid #e6c98a;
+  background: #fdf7e8;
+  color: #6b4d10;
+}
+.lista-erro svg,
+.lista-aviso svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Formulário --------------------------------------------------------------- */
+
+.lista-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.lista-campo {
+  display: grid;
+  gap: 5px;
+}
+.lista-campo span {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink);
+}
+.lista-campo input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #9aa39d;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+}
+.lista-campo input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.lista-campo small {
+  color: #65726b;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.lista-form-acoes {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.lista-cancelar,
+.lista-salvar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.lista-cancelar {
+  border: 1px solid #9aa39d;
+  background: transparent;
+  color: var(--ink);
+}
+.lista-salvar {
+  border: 0;
+  background: var(--green);
+  color: #fff;
+}
+.lista-salvar:disabled {
+  background: #7fa899;
+  cursor: not-allowed;
+}
+
+/* Busca -------------------------------------------------------------------- */
+
+.lista-busca {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  min-height: 44px;
+  border: 1px solid #9aa39d;
+  border-radius: 10px;
+  background: #fff;
+  color: #65726b;
+}
+.lista-busca input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.lista-busca input:focus {
+  outline: none;
+}
+.lista-busca:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.lista-busca button {
+  border: 0;
+  background: transparent;
+  color: #65726b;
+  cursor: pointer;
+  display: inline-flex;
+}
+
+/* Itens -------------------------------------------------------------------- */
+
+.lista-estado {
+  padding: 26px 4px;
+  color: #65726b;
+  font-size: 14px;
+  line-height: 1.55;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lista-itens {
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.lista-itens li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 2px;
+  border-bottom: 1px solid #e2e6e0;
+  font-size: 14px;
+}
+.lista-inativo {
+  opacity: 0.55;
+}
+
+.lista-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #eef1ec;
+  color: #65726b;
+}
+
+.lista-nome {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.lista-nome em {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #eef1ec;
+  color: #65726b;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.lista-alerta {
+  background: #fdf0d8 !important;
+  color: #8a5a10 !important;
+}
+
+.lista-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: #65726b;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.lista-aniversario::before {
+  content: "🎂";
+  margin-right: 4px;
+  font-size: 11px;
+}
+
+.lista-duracao {
+  color: #65726b;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lista-preco {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.lista-preco input {
+  width: 96px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #9aa39d;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.lista-preco input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.lista-preco button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--green);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.lista-preco button:disabled {
+  background: #7fa899;
+}
+
+@media (max-width: 640px) {
+  .lista-itens li {
+    flex-wrap: wrap;
+  }
+  .lista-meta,
+  .lista-duracao {
+    width: 100%;
+    padding-left: 44px;
+  }
+  .lista-preco {
+    margin-left: auto;
+  }
+}

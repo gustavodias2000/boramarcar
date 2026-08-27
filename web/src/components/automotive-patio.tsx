@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Scissors,
   Bell,
   BarChart3,
   Boxes,
@@ -48,6 +49,8 @@ import { listPatioOrders } from "@boramarca/core";
 import { demonstrationOrders } from "@/demo/automotive";
 import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/client";
 import { type FeatureKey } from "@boramarca/core";
+import { CoreClientes } from "@/components/core/clientes";
+import { CoreServicos } from "@/components/core/servicos";
 import { MARCA } from "@/core/marca";
 import { useSegment } from "@/core/segment";
 import { useTenant } from "@/core/tenant";
@@ -64,7 +67,14 @@ const navigation: {
   { label: "Pátio", icon: LayoutDashboard, view: "patio", href: "/patio", feature: "workOrders" },
   { label: "Agenda", icon: CalendarDays, view: "agenda", href: "/agenda", feature: "appointments" },
   { label: "OS", icon: ClipboardList, feature: "workOrders" },
-  { label: "Clientes", icon: UsersRound, feature: "customers" },
+  {
+    label: "Clientes",
+    icon: UsersRound,
+    view: "customers",
+    href: "/clientes",
+    feature: "customers",
+  },
+  { label: "Serviços", icon: Scissors, view: "services", href: "/servicos", feature: "services" },
   { label: "Boxes", icon: Boxes, view: "boxes", href: "/boxes", feature: "boxes" },
   { label: "Veículos", icon: CarFront, view: "vehicles", href: "/veiculos", feature: "vehicles" },
   {
@@ -86,7 +96,8 @@ function formatToday() {
   return dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 }
 
-export type OperationView = "patio" | "agenda" | "boxes" | "vehicles" | "reports" | "profile";
+export type OperationView =
+  "patio" | "agenda" | "customers" | "services" | "boxes" | "vehicles" | "reports" | "profile";
 
 export function AutomotivePatio({ view }: { view: OperationView }) {
   const router = useRouter();
@@ -532,6 +543,10 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
                 onOpenPatio={() => router.push("/patio")}
                 onSessionChanged={reloadTenant}
               />
+            ) : activeView === "customers" ? (
+              <CoreClientes />
+            ) : activeView === "services" ? (
+              <CoreServicos />
             ) : activeView === "boxes" ? (
               <AutomotiveBoxes />
             ) : activeView === "agenda" ? (
