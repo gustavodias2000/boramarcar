@@ -48,7 +48,7 @@ import { listPatioOrders } from "@boramarca/core";
 import { demonstrationOrders } from "@/demo/automotive";
 import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/client";
 import { type FeatureKey } from "@boramarca/core";
-import { SegmentProvider, resolveSegment } from "@/core/segment";
+import { useSegment } from "@/core/segment";
 import { useTenant } from "@/core/tenant";
 
 // Cada item declara a feature que o habilita. Numa barbearia, Pátio, OS e Veículos
@@ -97,7 +97,6 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
     unitName,
     unitTimezone,
     membershipRole,
-    businessType,
     blocked: operationsBlocked,
     isLoading,
     reload: reloadTenant,
@@ -131,7 +130,10 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
     () => orders.find((order) => order.id === selectedId) ?? orders[0] ?? null,
     [orders, selectedId],
   );
-  const segment = useMemo(() => resolveSegment(businessType), [businessType]);
+  // Antes era `resolveSegment(businessType)` a mao, porque este componente FORNECIA o
+  // provider e nao podia consumi-lo. Com o provider no layout, ele passa a consumir
+  // como qualquer outra tela.
+  const segment = useSegment();
   const visibleNavigation = useMemo(
     () => navigation.filter((item) => segment.hasFeature(item.feature)),
     [segment],
@@ -331,7 +333,7 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
   }
 
   return (
-    <SegmentProvider businessType={businessType}>
+    <>
       <main
         className={`app-shell ${activeView === "agenda" ? "agenda-shell" : activeView === "profile" ? "profile-shell" : activeView === "vehicles" || activeView === "reports" ? "insights-shell" : ""}`}
       >
@@ -483,18 +485,26 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
                 <Bell size={19} />
                 <span className="notification-dot" />
               </button>
-              <button
-                className="new-entry-button"
-                type="button"
-                onClick={() => {
-                  setIsEntryOpen(true);
-                  setNotice(null);
-                }}
-                disabled={operationsLocked}
-              >
-                <Plus size={18} />
-                Nova entrada
-              </button>
+              {/*
+                A acao primaria da moldura era renderizada em TODA categoria, com guarda
+                so de `operationsLocked`. Numa barbearia, o botao mais destacado da tela
+                abria um formulario que pede A PLACA DO CARRO do cliente. Nao era texto
+                errado: era fluxo de outro ramo oferecido como acao principal.
+              */}
+              {segment.hasFeature("workOrders") && (
+                <button
+                  className="new-entry-button"
+                  type="button"
+                  onClick={() => {
+                    setIsEntryOpen(true);
+                    setNotice(null);
+                  }}
+                  disabled={operationsLocked}
+                >
+                  <Plus size={18} />
+                  Nova entrada
+                </button>
+              )}
             </div>
           </header>
 
@@ -529,9 +539,32 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
                 tenantId={tenantId}
                 onOpenPatio={() => router.push("/patio")}
               />
-            ) : activeView === "reports" && !segment.hasFeature("workOrders") ? (
-              <CoreReports onOpenAgenda={() => router.push("/agenda")} />
-            ) : activeView === "vehicles" || activeView === "reports" ? (
+            ) : activeView === "reports" ? (
+              /*
+                Antes esta linha era `reports && !hasFeature("workOrders")`, com a
+                automotiva caindo no `AutomotiveInsights`. Formalmente era `hasFeature`;
+                materialmente era `if (businessType === "automotive_aesthetics")`, porque
+                `workOrders` e true num segmento so.
+                O efeito: a estetica automotiva NUNCA via `CoreReports` — ou seja, nunca
+                via `finance_entries`, o livro unico do nucleo. O modulo foi excluido do
+                financeiro do produto por uma ternaria de tela.
+                Agora os relatorios do nucleo valem para todos, e a leitura automotiva
+                (historico de veiculo, ciclo de patio) e um ACRESCIMO abaixo dela, nao um
+                substituto.
+              */
+              <>
+                <CoreReports onOpenAgenda={() => router.push("/agenda")} />
+                {segment.hasFeature("workOrders") && (
+                  <AutomotiveInsights
+                    view="reports"
+                    mode={mode}
+                    tenantId={tenantId}
+                    membershipRole={membershipRole}
+                    onOpenPatio={() => router.push("/patio")}
+                  />
+                )}
+              </>
+            ) : activeView === "vehicles" ? (
               <AutomotiveInsights
                 view={activeView}
                 mode={mode}
@@ -875,6 +908,6 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
           </aside>
         ) : null}
       </main>
-    </SegmentProvider>
+    </>
   );
 }
