@@ -162,12 +162,26 @@ select isnt_empty(
   'control — qualquer membro LE a preferencia'
 );
 
-select throws_ok(
+-- MAS SO A ADMINISTRACAO ESCREVE — e a prova disso NAO e uma excecao.
+--
+-- RLS em UPDATE filtra LINHAS, nao recusa o comando. O tecnico nao casa nenhuma linha
+-- na clausula USING da politica, entao o UPDATE afeta zero linhas e retorna com
+-- sucesso. Esperar 42501 aqui era esperar o mecanismo errado.
+--
+-- O que prova a politica e o EFEITO: o valor nao mudou. Deixar como `throws_ok` faria o
+-- teste falhar por um motivo e ser "corrigido" afrouxando a autorizacao — que e
+-- exatamente o contrario do que ele existe para proteger.
+select lives_ok(
   $$ update public.business_notification_settings set canal_sms = false
      where tenant_id = current_setting('tests.tenant')::uuid $$,
-  '42501'::char(5),
-  null::text,
-  'mas so a administracao ESCREVE'
+  'o UPDATE do tecnico nao levanta excecao — a RLS filtra a linha, nao recusa o comando'
+);
+
+select results_eq(
+  $$ select canal_sms from public.business_notification_settings
+     where tenant_id = current_setting('tests.tenant')::uuid $$,
+  $$ values (true) $$,
+  'e o valor continua o que a administracao deixou: zero linhas foram afetadas'
 );
 
 select tests.clear_auth();
