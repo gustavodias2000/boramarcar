@@ -81,8 +81,10 @@ export {
   CONSENT_PURPOSES,
   CONSENT_PURPOSE_DESCRIPTIONS,
   CONSENT_PURPOSE_LABELS,
+  CONTACT_FIELDS,
   RETENTION_MONTHS_RANGE,
   anonymizeCustomer,
+  clearCustomerContactFields,
   consentFor,
   deactivateProfessional,
   deleteBusiness,
@@ -99,6 +101,7 @@ export {
 export type {
   AuditEntry,
   ConsentPurpose,
+  ContactField,
   CustomerConsent,
   CustomerContact,
 } from "./privacy/index";

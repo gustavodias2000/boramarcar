@@ -47,6 +47,18 @@ export const CONSENT_PURPOSE_DESCRIPTIONS: Readonly<Record<ConsentPurpose, strin
   marketing_email: "Campanhas e promoções enviadas por e-mail.",
 };
 
+/** Os campos que `clear_customer_contact_fields` aceita apagar. A RPC recusa o resto. */
+export const CONTACT_FIELDS = [
+  "cpf_cnpj",
+  "phone",
+  "whatsapp",
+  "email",
+  "birthday_md",
+  "notes",
+] as const;
+
+export type ContactField = (typeof CONTACT_FIELDS)[number];
+
 export interface CustomerContact {
   customer_id: string;
   tenant_id: string;
@@ -164,25 +176,48 @@ export function consentFor(
   return consents?.find((consent) => consent.purpose === purpose)?.granted === true;
 }
 
+/**
+ * Passa pela RPC, não por `upsert` direto — e isso não é preferência de estilo.
+ *
+ * `customer_consents.recorded_by` nulo significa, na semântica da própria tabela, "o
+ * cliente consentiu sozinho pela área do cliente". Gravando direto, o campo ficava
+ * nulo e qualquer membro podia alegar consentimento que ninguém deu. A RPC carimba
+ * `auth.uid()` e grava a trilha; a escrita direta foi revogada na `20260826000200`.
+ *
+ * `tenantId` não é mais necessário — a função deriva do próprio cliente. O parâmetro
+ * continua aceito para não quebrar quem já chama, e é ignorado.
+ */
 export async function setCustomerConsent(
   db: Db,
-  input: { tenantId: string; customerId: string; purpose: ConsentPurpose; granted: boolean; source?: string },
+  input: {
+    tenantId?: string;
+    customerId: string;
+    purpose: ConsentPurpose;
+    granted: boolean;
+    source?: string;
+  },
 ) {
-  return db
-    .from("customer_consents")
-    .upsert(
-      {
-        tenant_id: input.tenantId,
-        customer_id: input.customerId,
-        purpose: input.purpose,
-        granted: input.granted,
-        granted_at: new Date().toISOString(),
-        source: input.source ?? null,
-      },
-      { onConflict: "tenant_id,customer_id,purpose" },
-    )
-    .select()
-    .maybeSingle();
+  return db.rpc("record_customer_consent", {
+    p_customer_id: input.customerId,
+    p_purpose: input.purpose,
+    p_granted: input.granted,
+    p_source: input.source ?? null,
+  });
+}
+
+/**
+ * Apagar um campo de contato. O upsert não serve: ele usa `coalesce`, então passar
+ * nulo deixa como estava. Apagar é um direito do titular e precisa de caminho próprio.
+ */
+export async function clearCustomerContactFields(
+  db: Db,
+  customerId: string,
+  fields: readonly ContactField[],
+) {
+  return db.rpc("clear_customer_contact_fields", {
+    p_customer_id: customerId,
+    p_fields: fields,
+  });
 }
 
 // ---------------------------------------------------------------------------

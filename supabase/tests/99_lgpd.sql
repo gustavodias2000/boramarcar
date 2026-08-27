@@ -113,9 +113,11 @@ select results_eq(
   'o aniversario e guardado como mes-dia, sem o ano'
 );
 
+-- O formato com ano e recusado pelo CHECK. Como o UPDATE direto foi revogado na
+-- 20260826000200, o caminho que exercita o CHECK e a RPC.
 select throws_ok(
-  $$ update public.customer_contacts set birthday_md = '1990-03-14'
-     where customer_id = current_setting('tests.customer')::uuid $$,
+  $$ select public.upsert_customer_contact(
+       current_setting('tests.customer')::uuid, null, null, null, null, '1990-03-14') $$,
   '23514'::char(5),
   null::text,
   'gravar o ano de nascimento e recusado pelo schema'
@@ -139,10 +141,38 @@ select col_hasnt_default(
 );
 
 select lives_ok(
+  $$ select public.record_customer_consent(
+       current_setting('tests.customer')::uuid, 'marketing_whatsapp', true) $$,
+  'control — a recepcao registra o consentimento de marketing'
+);
+
+-- `recorded_by` nulo significa, na semantica da tabela, "o cliente consentiu sozinho".
+-- A RPC carimba quem registrou; a escrita direta deixava o campo em branco.
+select isnt_empty(
+  $$ select id from public.customer_consents
+     where customer_id = current_setting('tests.customer')::uuid
+       and purpose = 'marketing_whatsapp'
+       and recorded_by = current_setting('tests.receptionist')::uuid $$,
+  'o consentimento registra QUEM o registrou'
+);
+
+-- E a escrita direta, que contornava tudo isso, deixou de existir.
+select throws_ok(
   $$ insert into public.customer_consents (tenant_id, customer_id, purpose, granted)
      values (current_setting('tests.tenant')::uuid,
-             current_setting('tests.customer')::uuid, 'marketing_whatsapp', true) $$,
-  'control — a recepcao registra o consentimento de marketing'
+             current_setting('tests.customer')::uuid, 'marketing_email', true) $$,
+  '42501'::char(5),
+  null::text,
+  'nao se forja consentimento por escrita direta'
+);
+
+select throws_ok(
+  $$ insert into public.customer_contacts (customer_id, tenant_id, whatsapp)
+     values (current_setting('tests.customer')::uuid,
+             current_setting('tests.tenant')::uuid, '11955554444') $$,
+  '42501'::char(5),
+  null::text,
+  'nem dado pessoal por escrita direta — so pela RPC, que tem a guarda'
 );
 
 -- Consentir em receber a confirmacao do agendamento nao e consentir em promocao.
@@ -153,13 +183,19 @@ select is_empty(
   'consentir numa finalidade nao consente nas outras'
 );
 
-select throws_ok(
-  $$ insert into public.customer_consents (tenant_id, customer_id, purpose, granted)
-     values (current_setting('tests.tenant')::uuid,
-             current_setting('tests.customer')::uuid, 'marketing_whatsapp', false) $$,
-  '23505'::char(5),
-  null::text,
-  'ha um registro por finalidade, nao um historico duplicado'
+-- Um registro por finalidade: revogar ATUALIZA, nao empilha uma segunda linha.
+select lives_ok(
+  $$ select public.record_customer_consent(
+       current_setting('tests.customer')::uuid, 'marketing_whatsapp', false) $$,
+  'control — revogar o consentimento e permitido'
+);
+
+select results_eq(
+  $$ select count(*)::int, bool_or(granted) from public.customer_consents
+     where customer_id = current_setting('tests.customer')::uuid
+       and purpose = 'marketing_whatsapp' $$,
+  $$ values (1, false) $$,
+  'ha um registro por finalidade, e revogar atualiza no lugar'
 );
 
 select tests.clear_auth();
@@ -368,6 +404,58 @@ select tests.act_as(current_setting('tests.technician')::uuid);
 select is_empty(
   $$ select id from public.audit_log $$,
   'o tecnico nao le a trilha'
+);
+
+-- ---------------------------------------------------------------------------
+-- Apagar um campo, e nao apagar o cliente
+-- ---------------------------------------------------------------------------
+
+select tests.clear_auth();
+select tests.act_as(current_setting('tests.receptionist')::uuid);
+
+select lives_ok(
+  $$ select public.clear_customer_contact_fields(
+       current_setting('tests.customer')::uuid, array['phone']) $$,
+  'control — o titular pede para apagar o telefone e o telefone e apagado'
+);
+
+-- Apagar um campo nao apaga os outros: o upsert usa coalesce e nao serviria aqui.
+select results_eq(
+  $$ select phone is null, email is not null from public.customer_contacts
+     where customer_id = current_setting('tests.customer')::uuid $$,
+  $$ values (true, true) $$,
+  'apagar um campo preserva os demais'
+);
+
+select throws_ok(
+  $$ select public.clear_customer_contact_fields(
+       current_setting('tests.customer')::uuid, array['salario']) $$,
+  '22023'::char(5),
+  'Campo desconhecido: salario',
+  'a lista de campos e fechada'
+);
+
+select tests.clear_auth();
+select tests.act_as(current_setting('tests.owner')::uuid);
+
+select isnt_empty(
+  $$ select id from public.audit_log
+     where action = 'erase' and entity = 'customer_contact' $$,
+  'apagar dado pessoal deixa rastro na trilha'
+);
+
+-- Mesma classe do C-11 e do C-12: a politica prometia um DELETE que sete FKs
+-- RESTRICT tornam impossivel para quem tem historico — e que apagava de verdade,
+-- sem trilha, para quem nao tem.
+select ok(
+  not has_table_privilege('authenticated', 'public.customers', 'DELETE'),
+  'nao se apaga cliente: desliga-se ou anonimiza-se'
+);
+
+select is_empty(
+  $$ select policyname from pg_policies
+     where schemaname = 'public' and tablename = 'customers' and cmd = 'DELETE' $$,
+  'e a politica que prometia o impossivel tambem saiu'
 );
 
 -- ---------------------------------------------------------------------------

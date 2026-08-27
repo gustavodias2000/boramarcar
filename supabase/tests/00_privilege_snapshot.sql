@@ -112,6 +112,10 @@ select set_eq(
       ('is_tenant_owner'),
       ('is_tenant_administrator'),
       ('is_tenant_scheduler'),
+      -- Entrou na lista quando `20260825001700_core_finance.sql` passou a chamá-la
+      -- dentro de duas políticas de RLS. Antes disso só era usada de dentro de
+      -- funções SECURITY DEFINER, e por isso ficava de fora — ver a 20260826000100.
+      ('is_tenant_finance_operator'),
       ('is_current_user_professional'),
       ('is_automotive_business'),
       ('can_claim_initial_tenant_owner'),
@@ -158,6 +162,8 @@ select set_eq(
       ('redeem_automotive_loyalty_reward'),
       -- LGPD (§48)
       ('upsert_customer_contact'),
+      ('clear_customer_contact_fields'),
+      ('record_customer_consent'),
       ('anonymize_customer'),
       ('deactivate_professional'),
       ('delete_business')
