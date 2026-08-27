@@ -94,9 +94,22 @@ select isnt_empty(
 select tests.clear_auth();
 select tests.act_as_anon();
 
-select is_empty(
+-- ANON NAO CHEGA A CONSULTAR — e essa e a barreira mais forte, nao a mais fraca.
+--
+-- Estas asercoes nasceram antes da Etapa 1. Naquele momento `anon` tinha os grants
+-- padrao do Supabase e a RLS e que filtrava as linhas, entao `is_empty` era a leitura
+-- certa. A `20260825000200_harden_privileges.sql` revogou TODOS os grants de `anon`, de
+-- proposito: nao ha superficie publica ainda, e ate existir ele nao tem por que
+-- alcancar objeto nenhum.
+--
+-- Consequencia: a consulta morre com 42501 ANTES de a politica ser avaliada. Afirmar
+-- `is_empty` agora seria afirmar o mecanismo fraco quando o forte esta em vigor.
+
+select throws_ok(
   $$ select note from public.scheduling_block_notes $$,
-  'anon nao le motivo de bloqueio'
+  '42501'::char(5),
+  null::text,
+  'anon nao alcanca motivo de bloqueio — recusado por privilegio'
 );
 
 -- ---------------------------------------------------------------------------
