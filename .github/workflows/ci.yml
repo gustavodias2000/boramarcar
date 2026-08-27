@@ -16,6 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Antes de subir contêiner nenhum: o verificador estático da suíte. Ele pega três
+      # armadilhas que custaram um ciclo de CI cada — fixture com sessão ativa, chamada a
+      # função sem EXECUTE, e `is_empty` esperado de `anon`. Zero dependência, e falha em
+      # milissegundos em vez de depois de vários minutos de imagem.
+      - name: Suíte pgTAP — verificação estática
+        run: node supabase/check-tests.mjs
+
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -26,7 +33,8 @@ jobs:
       - name: Subir o Supabase
         run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector
 
-      # Roda supabase/tests/*.sql no pg_prove.
+      # Roda supabase/tests/*.sql no pg_prove. O `supabase` aqui vem do setup-cli, e
+      # não do npm script — que passa pelo verificador estático já rodado acima.
       - name: Suíte pgTAP
         run: supabase test db
 
