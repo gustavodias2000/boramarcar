@@ -204,3 +204,76 @@ export async function openWalkInWorkOrder(
     p_notes: params.notes ?? null,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Empresas do usuário
+// ---------------------------------------------------------------------------
+
+export interface UserBusiness {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly businessType: string;
+  readonly timezone: string;
+  readonly active: boolean;
+  readonly role: string;
+}
+
+/**
+ * As empresas do usuário — todas elas.
+ *
+ * Substitui o `.limit(1)` que o `TenantProvider` fazia, e que prendia qualquer pessoa
+ * com duas empresas na mais antiga sem nenhuma interface revelando que a outra existia.
+ * O banco sempre permitiu isto: `business_members_select_same_tenant` e
+ * `businesses_select_member_or_creator` já devolvem exatamente os vínculos do chamador.
+ * Era lacuna de interface, não de schema.
+ *
+ * Sai de `business_members`, não de `businesses`: vínculo é o que autoriza operar. Uma
+ * empresa criada sem vínculo apareceria pela cláusula `created_by` da política, e entrar
+ * nela não faria nada — toda RPC checa papel.
+ *
+ * `!inner` não é detalhe: sem ele, uma linha cujo `businesses` não passe na RLS volta
+ * com `businesses: null` em vez de sumir, e o seletor renderiza uma entrada vazia.
+ *
+ * Empresa inativa VOLTA, com a marca. Sumir com a empresa que o dono pagou é chamado de
+ * suporte; mostrá-la desabilitada explica o que aconteceu.
+ */
+export async function listUserBusinesses(db: Db, userId: string) {
+  const { data, error } = await db
+    .from("business_members")
+    .select("role, businesses!inner(id, slug, name, business_type, timezone, active)")
+    .eq("user_id", userId)
+    .eq("active", true);
+
+  if (error) {
+    return { data: null as UserBusiness[] | null, error };
+  }
+
+  const empresas: UserBusiness[] = (data ?? []).map((linha) => {
+    // O gerador de tipos do Supabase infere o embed como array pela forma da FK; aqui
+    // ele e sempre um objeto, porque `business_members.tenant_id` aponta para uma
+    // empresa so. A conversao passa por `unknown` de proposito — e o unico ponto do
+    // nucleo onde a forma do embed e afirmada a mao.
+    const empresa = (linha as unknown as { businesses: Record<string, unknown> }).businesses;
+    return {
+      id: String(empresa.id),
+      slug: String(empresa.slug),
+      name: String(empresa.name),
+      businessType: String(empresa.business_type),
+      timezone: String(empresa.timezone),
+      active: empresa.active !== false,
+      role: String((linha as unknown as { role: unknown }).role),
+    };
+  });
+
+  // Ordenação em JS, não no banco: `order by name` usaria a collation do servidor, e
+  // ordenar nome com acento em pt-BR é decisão de apresentação. A lista tem uma linha
+  // por vínculo — tipicamente uma a três.
+  const comparador = new Intl.Collator("pt-BR", { sensitivity: "base" });
+  empresas.sort((a, b) => {
+    if (a.active !== b.active) return a.active ? -1 : 1;
+    return comparador.compare(a.name, b.name);
+  });
+
+  return { data: empresas, error: null };
+}

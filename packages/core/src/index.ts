@@ -72,10 +72,11 @@ export {
   registerWorkOrderMedia,
   removeWorkOrderItem,
   removeWorkOrderMedia,
+  listUserBusinesses,
   transitionWorkOrder,
 } from "./data/index";
 
-export type { Db } from "./data/index";
+export type { Db, UserBusiness } from "./data/index";
 
 export {
   CONSENT_PURPOSES,
