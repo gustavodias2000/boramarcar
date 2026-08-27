@@ -124,13 +124,12 @@ select lives_ok(
 
 -- A empresa vive na RAIZ da URL, entao o nome dela divide espaco com toda rota de
 -- produto. Uma empresa chamada "Suporte" quebraria `/suporte` no dia em que ele existir.
-select results_eq(
-  $$ select public.endereco_reservado('suporte'),
-            public.endereco_reservado('precos'),
-            public.endereco_reservado('barbearia-do-ze') $$,
-  $$ values (true, true, false) $$,
-  'a lista reservada cobre o que existe E o que provavelmente vai existir'
-);
+--
+-- A lista e verificada pelo COMPORTAMENTO, nas duas asercoes abaixo, e nao chamando
+-- `endereco_reservado` direto: ela foi revogada de `authenticated` de proposito — a
+-- interface tem a propria copia em TypeScript para avisar antes de enviar, e o banco
+-- recusa de qualquer forma. Chama-la aqui daria 42501, e o `00_privilege_snapshot`
+-- afirma exatamente essa inalcancabilidade.
 
 select throws_ok(
   $$ select public.set_business_slug(
