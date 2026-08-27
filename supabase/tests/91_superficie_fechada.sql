@@ -86,11 +86,13 @@ select results_eq(
   'a empresa nasce com endereco legivel, derivado do nome'
 );
 
-select isnt_empty(
-  $$ select id from public.businesses
-     where name in ('Barbearia Um', 'Barbearia Dois')
-     group by slug having count(*) > 0 $$,
-  'control — empresas existem'
+-- Controle da asercao seguinte: as duas empresas existem MESMO, entao a prova de que
+-- nenhum endereco se repete nao esta passando por lista vazia.
+select results_eq(
+  $$ select count(*)::int from public.businesses
+     where name in ('Barbearia Um', 'Barbearia Dois') $$,
+  $$ values (2) $$,
+  'control — as duas empresas existem, entao a prova de unicidade abaixo tem sobre o que falar'
 );
 
 select is_empty(
