@@ -11,7 +11,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check:agnostic": "node check-agnostic.mjs",
-    "verify": "npm run typecheck && npm run check:agnostic"
+    "verify": "npm run typecheck && npm run test && npm run check:agnostic",
+    "test": "node --import ./test-hook.mjs --test \"src/**/*.test.ts\""
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2",

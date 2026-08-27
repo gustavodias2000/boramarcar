@@ -105,3 +105,13 @@ export type {
   CustomerConsent,
   CustomerContact,
 } from "./privacy/index";
+
+export {
+  ROTA_PADRAO,
+  destinoSeguro,
+  navegacaoDoSegmento,
+  rotaDaEmpresa,
+  rotaInicialDaEmpresa,
+  rotaInicialDoSegmento,
+  rotaPermitida,
+} from "./routing/index";

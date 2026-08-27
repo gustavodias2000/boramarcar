@@ -15,8 +15,19 @@
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+
+    // Permite `from "./x.ts"`. O modulo de rotas usa extensao explicita porque os
+    // testes dele rodam direto no Node (`node --test`), e o carregador ESM do Node
+    // nao adivinha extensao. Sem isto, a peca que a seguranca classificou como
+    // "errada, nao falha em teste nenhum" continuaria sem teste.
+    
+
     "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts"]
+  // Os testes rodam em `node --test`, que e o verificador real deles. Ficam fora do
+  // tsc porque importam `node:test` e usam extensao explicita, que o alvo do pacote
+  // (consumido por bundler) nao permite.
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }

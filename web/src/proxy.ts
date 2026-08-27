@@ -7,14 +7,27 @@ import { NextResponse, type NextRequest } from "next/server";
  * Sem isto, o token de acesso expira e só é renovado quando o navegador executa
  * JavaScript — o que deixa Server Components e Route Handlers vendo uma sessão morta.
  *
- * Este middleware NÃO decide autorização. Quem decide é o banco: RLS e as funções
- * transacionais. Aqui só se mantém o cookie fresco e se lê quem está autenticado.
+ * Renomeado de `middleware.ts` em 26/08/2026: o Next 16 descontinuou aquela convenção
+ * em favor de `proxy.ts`. Mesma função, nome novo.
  *
- * A proteção de rota entra quando existirem rotas separadas para autenticar e operar
- * (Etapa 3.6 e o onboarding da Etapa 5). Hoje a aplicação é uma superfície só, que
- * já trata sozinha os estados sem sessão e sem vínculo.
+ * O QUE ESTE ARQUIVO NÃO PODE FAZER — lista fechada, e ela é a fronteira de segurança:
+ *
+ *   1. Decidir se a pessoa é membro daquela empresa. O cookie não carrega vínculo, e
+ *      mesmo que carregasse seria estado velho: o token vive até uma hora.
+ *   2. Decidir papel. Papel muda dentro da vida do token.
+ *   3. Ser a razão pela qual uma consulta é segura. A razão é RLS. Quem chama a API
+ *      REST direto com o token nunca passa por aqui.
+ *   4. Consultar o banco. A doc do Next é explícita: o proxy roda em toda rota,
+ *      inclusive nas que o navegador busca por antecipação ao passar o mouse num link.
+ *
+ * O teste do desenho: se este arquivo for apagado amanhã, nenhum dado pode vazar — só
+ * a experiência piora. Se a resposta for outra, o desenho está errado.
+ *
+ * Ele também nunca decodifica o JWT para ler claim de autorização. Decodificar sem
+ * verificar assinatura é pior que não decodificar: cria aparência de leitura
+ * autoritativa sobre um valor que o cliente controla inteiramente.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 

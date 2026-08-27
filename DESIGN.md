@@ -1,4 +1,17 @@
-# Design system — Bora Marcá Automotive
+# Design system — módulo Estética Automotiva
+
+> **Escopo corrigido em 26/08/2026.** Este documento descreveu-se como o sistema de design do
+> Bora Marcá, e nunca foi isso: descreve a **Prancheta de boxes**, que é o tema do módulo de
+> Estética Automotiva. Enquanto ele se chamou "o sistema", toda tela nova herdou a premissa de
+> uma categoria só — foi a causa raiz do produto abrir no Pátio.
+>
+> O sistema de design do produto, que serve as onze categorias, será registrado num `DESIGN.md`
+> na raiz quando a reconstrução da experiência terminar — escrito a partir do que foi
+> construído, não antes dele. A direção comprometida está em `PRODUCT.md` § Brand Commitments.
+>
+> O que está abaixo **continua válido para o Pátio, a OS, os boxes e os veículos**. A densidade
+> de operação descrita aqui é boa e sobrevive; o que não sobrevive é ela definir a landing e as
+> demais categorias.
 
 ## Direção
 

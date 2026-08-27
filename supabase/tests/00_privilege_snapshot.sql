@@ -166,7 +166,9 @@ select set_eq(
       ('record_customer_consent'),
       ('anonymize_customer'),
       ('deactivate_professional'),
-      ('delete_business')
+      ('delete_business'),
+      -- endereço da empresa na URL
+      ('set_business_slug')
   $$,
   'exactly the intended RPCs are executable by authenticated'
 );
@@ -176,6 +178,30 @@ select set_eq(
 -- ---------------------------------------------------------------------------
 -- Kept separate from the set comparison above so a failure names the actual risk
 -- instead of printing a diff of thirty rows.
+
+-- `slugify` só é chamada de dentro de SECURITY DEFINER. Conceder EXECUTE não quebraria
+-- nada e ampliaria a superfície sem motivo.
+select ok(
+  not has_function_privilege('authenticated', 'public.slugify(text)', 'EXECUTE'),
+  'slugify nao e alcancavel pela API'
+);
+
+-- Privilegio de COLUNA nao aparece em has_table_privilege(...,'UPDATE'), entao estas
+-- duas assertivas sao a unica prova de que o revoke de coluna pegou.
+select ok(
+  not has_column_privilege('authenticated', 'public.businesses', 'slug', 'UPDATE'),
+  'nao se reescreve o endereco da empresa direto — so por set_business_slug'
+);
+
+select ok(
+  not has_column_privilege('authenticated', 'public.businesses', 'business_type', 'UPDATE'),
+  'nao se troca o segmento de um tenant vivo por UPDATE direto'
+);
+
+select ok(
+  has_column_privilege('authenticated', 'public.businesses', 'name', 'UPDATE'),
+  'control — renomear a empresa continua permitido'
+);
 
 select ok(
   not has_function_privilege(
