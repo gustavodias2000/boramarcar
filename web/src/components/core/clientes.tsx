@@ -1,12 +1,21 @@
 "use client";
 
-import { CircleAlert, Loader2, Plus, Search, UserRound, X } from "lucide-react";
+import { Ban, CircleAlert, Loader2, Plus, Search, UserRound, X } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 
 import { useSegment } from "@/core/segment";
 import { useTenant } from "@/core/tenant";
 import { createClient } from "@/lib/supabase/client";
-import { formatBirthdayMd, saveCustomerContact, toBirthdayMd } from "@boramarca/core";
+import {
+  banCustomer,
+  can,
+  formatBirthdayMd,
+  listCustomerBans,
+  saveCustomerContact,
+  toBirthdayMd,
+  unbanCustomer,
+  type BusinessRole,
+} from "@boramarca/core";
 
 /**
  * Clientes — portado da `ClientesScreen` do Barbershop.
@@ -39,7 +48,7 @@ interface Contato {
 }
 
 export function CoreClientes() {
-  const { tenantId, mode } = useTenant();
+  const { tenantId, mode, membershipRole } = useTenant();
   const segment = useSegment();
   const supabase = createClient();
 
@@ -54,8 +63,11 @@ export function CoreClientes() {
   const [telefone, setTelefone] = useState("");
   const [aniversario, setAniversario] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [banidos, setBanidos] = useState<Set<string>>(new Set());
+  const [ocupadoId, setOcupadoId] = useState<string | null>(null);
 
   const aoVivo = mode === "live";
+  const podeBanir = can(membershipRole as BusinessRole | null, "anonymizeCustomers");
 
   useEffect(() => {
     let cancelado = false;
@@ -97,6 +109,13 @@ export function CoreClientes() {
         mapa[linha.customer_id] = linha;
       }
       setContatos(mapa);
+
+      // Banido é a empresa recusando a pessoa; inativo é o cadastro fora de circulação.
+      // São coisas diferentes e aparecem diferentes.
+      const { data: bans } = await listCustomerBans(supabase, tenantId);
+      if (cancelado) return;
+      setBanidos(new Set((bans ?? []).map((ban) => ban.customer_id)));
+
       setCarregando(false);
     }
 
@@ -164,6 +183,30 @@ export function CoreClientes() {
     setAniversario("");
     setFormAberto(false);
     setSalvando(false);
+  }
+
+  async function alternarBanimento(cliente: Cliente) {
+    setErro(null);
+    setOcupadoId(cliente.id);
+
+    const banido = banidos.has(cliente.id);
+    const { error } = banido
+      ? await unbanCustomer(supabase, cliente.id)
+      : await banCustomer(supabase, cliente.id);
+
+    setOcupadoId(null);
+
+    if (error) {
+      setErro("Só proprietário e gerência podem impedir um cliente de agendar.");
+      return;
+    }
+
+    setBanidos((atual) => {
+      const proximo = new Set(atual);
+      if (banido) proximo.delete(cliente.id);
+      else proximo.add(cliente.id);
+      return proximo;
+    });
   }
 
   const filtrados = clientes.filter((cliente) =>
@@ -277,6 +320,7 @@ export function CoreClientes() {
                 <span className="lista-nome">
                   {cliente.name}
                   {!cliente.active && <em>inativo</em>}
+                  {banidos.has(cliente.id) && <em className="lista-alerta">impedido</em>}
                 </span>
                 <span className="lista-meta">
                   {telefoneVisivel ?? "—"}
@@ -284,6 +328,30 @@ export function CoreClientes() {
                     <span className="lista-aniversario">{aniversarioVisivel}</span>
                   )}
                 </span>
+                {podeBanir && (
+                  <button
+                    type="button"
+                    className="lista-desligar"
+                    onClick={() => void alternarBanimento(cliente)}
+                    disabled={ocupadoId === cliente.id}
+                    title={
+                      banidos.has(cliente.id)
+                        ? "Liberar para agendar de novo"
+                        : "Impedir de agendar"
+                    }
+                    aria-label={
+                      banidos.has(cliente.id)
+                        ? `Liberar ${cliente.name} para agendar`
+                        : `Impedir ${cliente.name} de agendar`
+                    }
+                  >
+                    {ocupadoId === cliente.id ? (
+                      <Loader2 className="spin" size={14} />
+                    ) : (
+                      <Ban size={14} />
+                    )}
+                  </button>
+                )}
               </li>
             );
           })}

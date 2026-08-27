@@ -167,7 +167,10 @@ select set_eq(
       ('deactivate_professional'),
       ('delete_business'),
       -- endereço da empresa na URL
-      ('set_business_slug')
+      ('set_business_slug'),
+      -- banimento (BanimentoRepository do Barbershop)
+      ('ban_customer'),
+      ('unban_customer')
   $$,
   'exactly the intended RPCs are executable by authenticated'
 );

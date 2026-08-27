@@ -93,6 +93,7 @@ export {
   CONTACT_FIELDS,
   RETENTION_MONTHS_RANGE,
   anonymizeCustomer,
+  banCustomer,
   clearCustomerContactFields,
   consentFor,
   deactivateProfessional,
@@ -100,17 +101,20 @@ export {
   formatBirthdayMd,
   getCustomerContact,
   listAuditLog,
+  listCustomerBans,
   listCustomerConsents,
   saveCustomerContact,
   setCustomerConsent,
   setDataRetention,
   toBirthdayMd,
+  unbanCustomer,
 } from "./privacy/index";
 
 export type {
   AuditEntry,
   ConsentPurpose,
   ContactField,
+  CustomerBan,
   CustomerConsent,
   CustomerContact,
 } from "./privacy/index";

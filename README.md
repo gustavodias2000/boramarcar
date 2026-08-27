@@ -109,6 +109,7 @@ Os testes vivem em `supabase/tests/` e rodam em ordem alfabética:
 | `80_recurrence_waitlist_links.sql` | recorrência, lista de espera, convite e vínculo do cliente |
 | `90_business_onboarding.sql` | abertura de empresa e catálogo por categoria |
 | `91_superficie_fechada.sql` | limite de empresas, endereço, agenda segregada por profissional |
+| `92_banimento_e_notificacoes.sql` | banimento impede agendar; preferências de notificação e relatório |
 | `95_agenda_patio_bridge.sql` | atribuir técnico e box, editar box, disponibilidade por RPC |
 | `97_new_categories.sql` | manicure, salão e maquiagem de ponta a ponta, sem vazamento automotivo |
 | `98_core_finance.sql` | caixa, livro financeiro, comissão e espelhamento do pagamento da OS |

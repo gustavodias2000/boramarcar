@@ -271,3 +271,38 @@ export async function setDataRetention(db: Db, tenantId: string, months: number 
     .select("id, data_retention_months")
     .maybeSingle();
 }
+
+// ---------------------------------------------------------------------------
+// Banimento
+// ---------------------------------------------------------------------------
+
+export interface CustomerBan {
+  customer_id: string;
+  tenant_id: string;
+  reason: string | null;
+  banned_at: string;
+}
+
+/**
+ * Quem esta empresa recusa atender.
+ *
+ * Diferente de `customers.active = false`, que significa "cadastro fora de circulação".
+ * Banir é a empresa recusando a pessoa, e a recusa é imposta por gatilho em
+ * `appointments` — a tela não é a autoridade, e contorná-la não adianta.
+ *
+ * Volta vazio para quem não tem permissão de ver o motivo, que é texto livre.
+ */
+export async function listCustomerBans(db: Db, tenantId: string) {
+  return db
+    .from("customer_bans")
+    .select("customer_id, tenant_id, reason, banned_at")
+    .eq("tenant_id", tenantId);
+}
+
+export async function banCustomer(db: Db, customerId: string, reason?: string) {
+  return db.rpc("ban_customer", { p_customer_id: customerId, p_reason: reason ?? null });
+}
+
+export async function unbanCustomer(db: Db, customerId: string) {
+  return db.rpc("unban_customer", { p_customer_id: customerId });
+}
