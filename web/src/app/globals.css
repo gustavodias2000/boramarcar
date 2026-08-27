@@ -5641,3 +5641,156 @@ a.seg-card-on:hover {
     margin-left: auto;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Início e equipe
+   -------------------------------------------------------------------------- */
+
+.inicio {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0 32px;
+}
+
+.inicio-topo h1 {
+  font-size: clamp(21px, 5vw, 27px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.inicio-topo p {
+  margin-top: 4px;
+  color: #65726b;
+  font-size: 13.5px;
+}
+
+/* Pendências: o que impede a empresa de atender, dito antes de a pessoa descobrir
+   tentando. Cada item some sozinho quando resolvido. */
+.inicio-pendencias {
+  padding: 14px 16px;
+  border: 1px solid #e6c98a;
+  border-radius: 12px;
+  background: #fdf7e8;
+}
+.inicio-pendencias-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b4d10;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.inicio-pendencias ul {
+  margin-top: 10px;
+  display: grid;
+  gap: 7px;
+  list-style: none;
+}
+.inicio-pendencias a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #6b4d10;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.inicio-bloco {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.inicio-bloco-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.inicio-bloco-topo h2 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.inicio-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.inicio-vazio {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 22px 2px;
+  color: #65726b;
+  font-size: 14px;
+}
+.inicio-vazio svg {
+  color: var(--green);
+}
+
+.inicio-hora {
+  min-width: 52px;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.inicio-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.inicio-atalhos a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.inicio-atalhos a:hover {
+  border-color: #9aa39d;
+}
+
+/* Equipe ------------------------------------------------------------------- */
+
+.lista-sufixo {
+  color: #65726b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.lista-desligar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid #d99a93;
+  border-radius: 9px;
+  background: #fff;
+  color: #8a2b22;
+  cursor: pointer;
+}
+.lista-desligar:hover:not(:disabled) {
+  background: #fdf0ee;
+}
+.lista-desligar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

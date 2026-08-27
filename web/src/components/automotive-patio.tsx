@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  House,
   Scissors,
   Bell,
   BarChart3,
@@ -50,6 +51,8 @@ import { demonstrationOrders } from "@/demo/automotive";
 import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/client";
 import { type FeatureKey } from "@boramarca/core";
 import { CoreClientes } from "@/components/core/clientes";
+import { CoreEquipe } from "@/components/core/equipe";
+import { CoreInicio } from "@/components/core/inicio";
 import { CoreServicos } from "@/components/core/servicos";
 import { MARCA } from "@/core/marca";
 import { useSegment } from "@/core/segment";
@@ -64,6 +67,7 @@ const navigation: {
   href?: string;
   feature: FeatureKey;
 }[] = [
+  { label: "Início", icon: House, view: "home", href: "/inicio-empresa", feature: "appointments" },
   { label: "Pátio", icon: LayoutDashboard, view: "patio", href: "/patio", feature: "workOrders" },
   { label: "Agenda", icon: CalendarDays, view: "agenda", href: "/agenda", feature: "appointments" },
   { label: "OS", icon: ClipboardList, feature: "workOrders" },
@@ -75,6 +79,13 @@ const navigation: {
     feature: "customers",
   },
   { label: "Serviços", icon: Scissors, view: "services", href: "/servicos", feature: "services" },
+  {
+    label: "Equipe",
+    icon: UsersRound,
+    view: "team",
+    href: "/equipe",
+    feature: "professionals",
+  },
   { label: "Boxes", icon: Boxes, view: "boxes", href: "/boxes", feature: "boxes" },
   { label: "Veículos", icon: CarFront, view: "vehicles", href: "/veiculos", feature: "vehicles" },
   {
@@ -97,7 +108,16 @@ function formatToday() {
 }
 
 export type OperationView =
-  "patio" | "agenda" | "customers" | "services" | "boxes" | "vehicles" | "reports" | "profile";
+  | "home"
+  | "patio"
+  | "agenda"
+  | "customers"
+  | "services"
+  | "team"
+  | "boxes"
+  | "vehicles"
+  | "reports"
+  | "profile";
 
 export function AutomotivePatio({ view }: { view: OperationView }) {
   const router = useRouter();
@@ -543,6 +563,10 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
                 onOpenPatio={() => router.push("/patio")}
                 onSessionChanged={reloadTenant}
               />
+            ) : activeView === "home" ? (
+              <CoreInicio />
+            ) : activeView === "team" ? (
+              <CoreEquipe />
             ) : activeView === "customers" ? (
               <CoreClientes />
             ) : activeView === "services" ? (

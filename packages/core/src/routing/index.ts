@@ -57,6 +57,15 @@ export const ROTAS_RESERVADAS: readonly string[] = [
   "cadastro",
   "comecar",
   "inicio",
+  "inicio-empresa",
+  "equipe",
+  "clientes",
+  "servicos",
+  "agenda",
+  "patio",
+  "relatorios",
+  "veiculos",
+  "boxes",
   "conta",
   "privacidade",
   // o que provavelmente vai existir
@@ -173,6 +182,9 @@ const NAVEGACAO: readonly {
   readonly caminho: string;
   readonly feature: FeatureKey;
 }[] = [
+  // Início vem primeiro para toda categoria: e a tela que o dono abre as 8h querendo
+  // saber o que tem hoje. O Patio continua sendo a casa da automotiva logo abaixo.
+  { caminho: "inicio-empresa", feature: "appointments" },
   { caminho: "patio", feature: "workOrders" },
   { caminho: "agenda", feature: "appointments" },
   { caminho: "clientes", feature: "customers" },
@@ -244,6 +256,8 @@ function rotuloDaRota(
   labels: ReturnType<typeof getSegmentConfig>["labels"],
 ) {
   switch (caminho) {
+    case "inicio-empresa":
+      return "Início";
     case "patio":
       return "Pátio";
     case "agenda":

@@ -114,12 +114,15 @@ test("aceita o valor ja codificado uma vez", () => {
 // Rotas por categoria
 // ---------------------------------------------------------------------------
 
-test("a automotiva abre no patio", () => {
-  assert.equal(rotaInicialDoSegmento("automotive_aesthetics"), "patio");
+test("toda categoria abre no Inicio, e nao numa tela de modulo", () => {
+  assert.equal(
+    rotaInicialDoSegmento("automotive_aesthetics"),
+    "inicio-empresa",
+  );
 });
 
-test("a barbearia abre na agenda, nao no patio", () => {
-  assert.equal(rotaInicialDoSegmento("barbershop"), "agenda");
+test("inclusive a barbearia", () => {
+  assert.equal(rotaInicialDoSegmento("barbershop"), "inicio-empresa");
 });
 
 test("nenhuma categoria de servico abre no patio, exceto a automotiva", () => {
@@ -188,11 +191,11 @@ test("rotaDaEmpresa monta o endereco", () => {
 test("rotaInicialDaEmpresa junta as duas coisas", () => {
   assert.equal(
     rotaInicialDaEmpresa("estetica-x", "automotive_aesthetics"),
-    "/estetica-x/patio",
+    "/estetica-x/inicio-empresa",
   );
   assert.equal(
     rotaInicialDaEmpresa("barbearia-do-ze", "barbershop"),
-    "/barbearia-do-ze/agenda",
+    "/barbearia-do-ze/inicio-empresa",
   );
 });
 
@@ -258,5 +261,5 @@ test("nome de empresa de verdade nao e reservado", () => {
 // reservar o nome. A lista do SQL (`set_business_slug`, `create_business_with_owner`)
 // precisa casar com esta.
 test("a lista tem o tamanho que o SQL espelha", () => {
-  assert.equal(ROTAS_RESERVADAS.length, 46);
+  assert.equal(ROTAS_RESERVADAS.length, 55);
 });
