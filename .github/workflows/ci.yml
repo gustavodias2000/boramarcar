@@ -52,7 +52,11 @@ jobs:
       # O núcleo é compartilhado entre site e app. `typecheck` usa um tsconfig sem a
       # lib "DOM", e `check:agnostic` recusa import de React, React Native ou Next.
       # Ver docs/adr/0005.
-      - name: Núcleo — tipos e agnosticismo
+      # `core:verify` roda tipos, os testes do núcleo e o portão de agnosticismo. Os
+      # testes usam o TypeScript nativo do Node, com `--experimental-strip-types`
+      # explícito: sem a flag isso só funciona no Node 22.18+, e `node-version: 22`
+      # resolve para "o mais recente da linha", que pode mudar sob nós.
+      - name: Núcleo — tipos, testes e agnosticismo
         run: npm run core:verify
 
       # O Prettier é o que mantém a dívida de formatação paga: a Etapa 3.9 levou a
