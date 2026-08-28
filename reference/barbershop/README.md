@@ -43,3 +43,7 @@ mora sem o ruído de layout.
   apontou. `customer_bans` nasceu fechada.
 
 O original intacto continua em `D:\Claude\BarberShop`.
+
+O README que o próprio Barbershop trazia — pré-requisitos, emuladores, build de APK —
+está preservado ao lado, em `README-original.md`. Aquelas instruções descrevem o projeto
+Firebase e não valem para o Bora Marcá.
