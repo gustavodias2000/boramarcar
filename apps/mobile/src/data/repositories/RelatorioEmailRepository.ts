@@ -1,56 +1,77 @@
 /**
- * RelatorioEmailRepository — preferências de frequência e destinatário dos
- * relatórios financeiros. Compartilha o documento privado `notificacoes` com
- * as configurações de aviso, pois ele já tem as mesmas permissões: só o dono
- * do negócio (ou o profissional autônomo) consegue lê-lo e alterá-lo.
+ * RelatorioEmailRepository — frequência e destinatário do resumo financeiro.
+ *
+ * PORTADO DO FIRESTORE PARA O SUPABASE, com as assinaturas intactas.
+ *
+ * CONTINUA COMPARTILHANDO A LINHA COM AS NOTIFICAÇÕES, e a razão do Barbershop para isso
+ * era boa: uma equipe recebe UM relatório consolidado, administrado pelo dono, não um por
+ * barbeiro. Lá o motivo prático era que o documento já tinha a permissão certa; aqui é
+ * `business_notification_settings`, com política de leitura para qualquer membro e de
+ * escrita só para a administração.
+ *
+ * A MESCLA DE PADRÕES NA LEITURA SUMIU. No Firestore o campo podia não existir — e a
+ * ausência significava "continuar semanal", uma retrocompatibilidade que precisava ser
+ * remendada a cada leitura. Aqui as colunas são `not null default`, com os mesmos
+ * valores: semanal sim, mensal não.
+ *
+ * O DESTINATÁRIO NULO CONTINUA SIGNIFICANDO "o e-mail do dono". Preencher a coluna com o
+ * e-mail dele no cadastro criaria uma segunda cópia que envelheceria sozinha quando a
+ * pessoa trocasse de endereço.
  */
-import { db } from '../../../firebaseConfig';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { Barbeiro, ConfiguracaoRelatorioEmail } from '../../types';
-import { CONFIGURACAO_RELATORIO_EMAIL_PADRAO } from '../../types';
-import {
-  resolverAlvoNotificacao,
-  type AlvoNotificacao,
-} from './NotificationRepository';
+import { supabase } from "../../../supabaseConfig";
+import type { Barbeiro, ConfiguracaoRelatorioEmail } from "../../types";
+import { CONFIGURACAO_RELATORIO_EMAIL_PADRAO } from "../../types";
+import { resolverAlvoNotificacao, type AlvoNotificacao } from "./NotificationRepository";
 
 export type AlvoRelatorioEmail = AlvoNotificacao;
 
-const ref = (alvo: AlvoRelatorioEmail) =>
-  alvo.tipo === 'negocio'
-    ? doc(db, 'negocios', alvo.id, 'configuracoes', 'notificacoes')
-    : doc(db, 'barbeiros', alvo.id, 'configuracoes', 'notificacoes');
-
-/** A mesma resolução de escopo usada para notificações: equipe ou autônomo. */
+/** A mesma resolução de escopo das notificações — e agora é sempre a empresa. */
 export function resolverAlvoRelatorioEmail(barbeiro: Barbeiro): AlvoRelatorioEmail {
   return resolverAlvoNotificacao(barbeiro);
 }
 
-/**
- * Lê preferências já salvas e mescla com defaults retrocompatíveis. Em
- * especial, a ausência total do campo significa "continuar semanal".
- */
 export async function getConfiguracaoRelatorioEmail(
   alvo: AlvoRelatorioEmail,
 ): Promise<ConfiguracaoRelatorioEmail> {
-  const snap = await getDoc(ref(alvo));
-  if (!snap.exists()) return CONFIGURACAO_RELATORIO_EMAIL_PADRAO;
+  const { data } = await supabase
+    .from("business_notification_settings")
+    .select("relatorio_semanal, relatorio_mensal, relatorio_email")
+    .eq("tenant_id", alvo.id)
+    .maybeSingle();
 
-  const dados = snap.data() as { relatorioEmail?: Partial<ConfiguracaoRelatorioEmail> };
+  if (!data) return CONFIGURACAO_RELATORIO_EMAIL_PADRAO;
+
+  const linha = data as unknown as {
+    relatorio_semanal: boolean;
+    relatorio_mensal: boolean;
+    relatorio_email: string | null;
+  };
+
   return {
-    ...CONFIGURACAO_RELATORIO_EMAIL_PADRAO,
-    ...(dados.relatorioEmail || {}),
+    semanal: linha.relatorio_semanal,
+    mensal: linha.relatorio_mensal,
+    ...(linha.relatorio_email ? { emailDestino: linha.relatorio_email } : {}),
   };
 }
 
-/** Grava somente o mapa de relatório, sem substituir avisos já configurados. */
+/**
+ * Grava só o que é do relatório, sem tocar nas preferências de aviso — que dividem a
+ * mesma linha. Era `merge: true` no Firestore; aqui é um `update` de colunas nomeadas,
+ * que dá a mesma garantia de forma mais explícita.
+ */
 export async function salvarConfiguracaoRelatorioEmail(
   alvo: AlvoRelatorioEmail,
   config: ConfiguracaoRelatorioEmail,
-  uid: string,
+  _uid: string,
 ): Promise<void> {
-  await setDoc(
-    ref(alvo),
-    { relatorioEmail: config, updatedAt: serverTimestamp(), updatedBy: uid },
-    { merge: true },
-  );
+  const { error } = await supabase
+    .from("business_notification_settings")
+    .update({
+      relatorio_semanal: config.semanal,
+      relatorio_mensal: config.mensal,
+      relatorio_email: config.emailDestino?.trim() || null,
+    })
+    .eq("tenant_id", alvo.id);
+
+  if (error) throw error;
 }

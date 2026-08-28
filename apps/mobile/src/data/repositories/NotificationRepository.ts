@@ -1,109 +1,146 @@
 /**
- * NotificationRepository — configuração de canais/eventos de notificação de
- * agendamento (WhatsApp, SMS, Push).
+ * NotificationRepository — preferências de aviso da empresa.
  *
- * Onda A (fundação) do sistema multicanal de avisos: define só o MODELO DE
- * DADO e a leitura/escrita da preferência. O orquestrador que decide QUANDO
- * cada canal dispara, o registro FCM multi-dispositivo e a tela de
- * configuração são ondas futuras — este repositório é a base sobre a qual
- * elas serão construídas.
+ * PORTADO DO FIRESTORE PARA O SUPABASE, com as assinaturas intactas.
  *
- * Vive em um de dois lugares, dependendo do tipo de profissional (ver
- * `resolverAlvoNotificacao` abaixo e `firestore.rules`):
- *  - `barbeiros/{barbeiroId}/configuracoes/notificacoes` — profissional
- *    autônomo (ou o dono do negócio configurando um profissional de equipe
- *    sem login próprio — mesmo padrão de `bloqueiosPrivados`, ver
- *    BloqueioRepository.ts).
- *  - `negocios/{negocioId}/configuracoes/notificacoes` — config da EQUIPE
- *    inteira; só o dono administra (mesmo padrão de `membros`/comissão em
- *    NegocioRepository.ts — hoje profissionais de equipe não têm login
- *    próprio, então não existe configuração individual por membro).
+ * O ALVO DEIXOU DE TER DUAS FORMAS. No Barbershop a configuração vivia em
+ * `negocios/{id}/configuracoes/notificacoes` OU em `barbeiros/{id}/configuracoes/...`,
+ * conforme o barbeiro pertencesse a uma equipe ou trabalhasse sozinho —
+ * `resolverAlvoNotificacao` existia para escolher entre os dois.
  *
- * SEM CacheService de propósito: é uma configuração editada raramente, e um
- * cache desatualizado aqui poderia fazer o app agir sobre uma preferência de
- * canal que já não é mais a real (pior que uma leitura a mais no Firestore).
+ * Aqui não há autônomo sem empresa: quem trabalha sozinho abre uma empresa de uma pessoa
+ * só. A preferência é sempre da empresa, uma linha em `business_notification_settings`,
+ * e a razão do Barbershop para consolidar continua valendo — uma equipe recebe UM
+ * relatório, administrado pelo dono, não um por barbeiro.
+ *
+ * `resolverAlvoNotificacao` continua exportada e devolve sempre o tenant, para as telas
+ * que a chamam não mudarem.
+ *
+ * A MESCLA DE PADRÕES SUMIU, e some com razão. O Firestore obrigava a mesclar defaults na
+ * leitura, porque o documento podia não existir ou vir parcial. Aqui toda empresa nasce
+ * com a linha — por backfill nas existentes, por gatilho nas novas — e cada coluna tem
+ * `not null default`. Não há estado parcial a remendar.
+ *
+ * A TABELA EXISTE E O ENVIO NÃO. Não há outbox nem worker; nada lê estas colunas ainda.
+ * Guardar a preferência de quem já a configurou é o que evita perdê-la quando o envio
+ * chegar.
  */
-import { db } from '../../../firebaseConfig';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import type { Barbeiro, ConfiguracaoNotificacoes } from '../../types';
-import { CONFIGURACAO_NOTIFICACOES_PADRAO } from '../../types';
+import { supabase } from "../../../supabaseConfig";
+import type { Barbeiro, ConfiguracaoNotificacoes } from "../../types";
+import { CONFIGURACAO_NOTIFICACOES_PADRAO } from "../../types";
 
-/** Documento fixo dentro da subcoleção `configuracoes` (autônomo ou negócio). */
-const DOC_ID = 'notificacoes';
-
-/**
- * Alvo de uma config de notificação: um profissional autônomo (doc id ==
- * uid do barbeiro) ou um negócio (equipe).
- */
 export interface AlvoNotificacao {
-  tipo: 'negocio' | 'autonomo';
+  tipo: "negocio" | "autonomo";
   id: string;
 }
 
-const ref = (alvo: AlvoNotificacao) =>
-  alvo.tipo === 'negocio'
-    ? doc(db, 'negocios', alvo.id, 'configuracoes', DOC_ID)
-    : doc(db, 'barbeiros', alvo.id, 'configuracoes', DOC_ID);
-
 /**
- * Decide o alvo (negócio ou autônomo) a partir de um `Barbeiro` já em mãos,
- * usando o `negocioId` já denormalizado no próprio doc — sem precisar buscar
- * o negócio de novo no Firestore. Mesma bifurcação já usada em
- * `BarbeiroHome.tsx`/`EditarProfissionalScreen.tsx` (`if (negocio) ... else`).
+ * O alvo é sempre a empresa. `tipo` continua no retorno por compatibilidade e é sempre
+ * `negocio` — não há mais autônomo sem empresa neste modelo.
  */
 export function resolverAlvoNotificacao(barbeiro: Barbeiro): AlvoNotificacao {
-  return barbeiro.negocioId
-    ? { tipo: 'negocio', id: barbeiro.negocioId }
-    : { tipo: 'autonomo', id: barbeiro.id };
+  return { tipo: "negocio", id: barbeiro.negocioId ?? barbeiro.id };
 }
 
-/**
- * Lê a config de notificação do alvo. Compatibilidade com registros
- * anteriores a esta feature: se o doc ainda não existe, devolve os PADRÕES
- * (`CONFIGURACAO_NOTIFICACOES_PADRAO`) em vez de lançar erro — nunca deixa a
- * tela/orquestrador sem uma preferência para trabalhar.
- */
+interface LinhaPreferencia {
+  canal_push: boolean;
+  canal_whatsapp: boolean;
+  canal_sms: boolean;
+  evento_novo_agendamento: boolean;
+  evento_confirmacao: boolean;
+  evento_cancelamento: boolean;
+  evento_lembrete: boolean;
+  retorno_ativo: boolean;
+  retorno_dias: number;
+  retorno_canal: string;
+}
+
+const COLUNAS_AVISO =
+  "canal_push, canal_whatsapp, canal_sms, evento_novo_agendamento, evento_confirmacao, " +
+  "evento_cancelamento, evento_lembrete, retorno_ativo, retorno_dias, retorno_canal";
+
 export async function getConfiguracaoNotificacoes(
   alvo: AlvoNotificacao,
 ): Promise<ConfiguracaoNotificacoes> {
-  const snap = await getDoc(ref(alvo));
-  if (!snap.exists()) return CONFIGURACAO_NOTIFICACOES_PADRAO;
+  const { data } = await supabase
+    .from("business_notification_settings")
+    .select(COLUNAS_AVISO)
+    .eq("tenant_id", alvo.id)
+    .maybeSingle();
+
+  // Sem linha significa sem permissão de ler, não configuração ausente — toda empresa
+  // nasce com a dela. Devolver o padrão é a leitura segura: nunca liga um canal que a
+  // empresa não escolheu.
+  if (!data) return CONFIGURACAO_NOTIFICACOES_PADRAO;
+
+  const linha = data as unknown as LinhaPreferencia;
+
   return {
-    ...CONFIGURACAO_NOTIFICACOES_PADRAO,
-    ...(snap.data() as Partial<ConfiguracaoNotificacoes>),
-    // Os documentos anteriores a lembrete de retorno não têm este campo.
-    // Mesclar cada mapa evita que uma config parcial antiga apague defaults
-    // internos ao ser lida pela tela.
     canais: {
-      ...CONFIGURACAO_NOTIFICACOES_PADRAO.canais,
-      ...((snap.data() as Partial<ConfiguracaoNotificacoes>).canais || {}),
+      whatsapp: linha.canal_whatsapp,
+      sms: linha.canal_sms,
+      push: linha.canal_push,
     },
     eventos: {
-      ...CONFIGURACAO_NOTIFICACOES_PADRAO.eventos,
-      ...((snap.data() as Partial<ConfiguracaoNotificacoes>).eventos || {}),
+      novoAgendamento: linha.evento_novo_agendamento,
+      confirmacao: linha.evento_confirmacao,
+      cancelamento: linha.evento_cancelamento,
+      lembrete: linha.evento_lembrete,
     },
     retornoCliente: {
-      ...CONFIGURACAO_NOTIFICACOES_PADRAO.retornoCliente,
-      ...((snap.data() as Partial<ConfiguracaoNotificacoes>).retornoCliente || {}),
+      ativo: linha.retorno_ativo,
+      diasSemComparecer: linha.retorno_dias,
+      canal: linha.retorno_canal,
     },
-  };
+  } as ConfiguracaoNotificacoes;
 }
 
 /**
- * Grava a config do alvo (merge parcial — não apaga campos não enviados).
- * `updatedAt`/`updatedBy` são responsabilidade deste repositório, nunca do
- * chamador: a tela/orquestrador NÃO deve importar `firebase/firestore` só
- * para gerar o timestamp (mesmo padrão reforçado em
- * `UsuarioRepository.createProfile`, ver `consentimentoEm`).
+ * Grava a preferência. Continua sendo mescla parcial: o que não veio não é tocado.
+ *
+ * `uid` permanece no parâmetro por compatibilidade e é ignorado — quem alterou é lido de
+ * `auth.uid()` pelo banco. Aceitar da tela permitiria atribuir a mudança a outra pessoa.
  */
 export async function salvarConfiguracaoNotificacoes(
   alvo: AlvoNotificacao,
   config: Partial<ConfiguracaoNotificacoes>,
-  uid: string,
+  _uid: string,
 ): Promise<void> {
-  await setDoc(
-    ref(alvo),
-    { ...config, updatedAt: serverTimestamp(), updatedBy: uid },
-    { merge: true },
-  );
+  const mudanca: Record<string, unknown> = {};
+
+  if (config.canais?.push !== undefined) mudanca.canal_push = config.canais.push;
+  if (config.canais?.whatsapp !== undefined) mudanca.canal_whatsapp = config.canais.whatsapp;
+  if (config.canais?.sms !== undefined) mudanca.canal_sms = config.canais.sms;
+
+  if (config.eventos?.novoAgendamento !== undefined) {
+    mudanca.evento_novo_agendamento = config.eventos.novoAgendamento;
+  }
+  if (config.eventos?.confirmacao !== undefined) {
+    mudanca.evento_confirmacao = config.eventos.confirmacao;
+  }
+  if (config.eventos?.cancelamento !== undefined) {
+    mudanca.evento_cancelamento = config.eventos.cancelamento;
+  }
+  if (config.eventos?.lembrete !== undefined) {
+    mudanca.evento_lembrete = config.eventos.lembrete;
+  }
+
+  if (config.retornoCliente?.ativo !== undefined) {
+    mudanca.retorno_ativo = config.retornoCliente.ativo;
+  }
+  if (config.retornoCliente?.diasSemComparecer !== undefined) {
+    mudanca.retorno_dias = config.retornoCliente.diasSemComparecer;
+  }
+  if (config.retornoCliente?.canal !== undefined) {
+    mudanca.retorno_canal = config.retornoCliente.canal;
+  }
+
+  if (Object.keys(mudanca).length === 0) return;
+
+  const { error } = await supabase
+    .from("business_notification_settings")
+    .update(mudanca)
+    .eq("tenant_id", alvo.id);
+
+  if (error) throw error;
 }
