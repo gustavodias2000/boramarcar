@@ -1,8 +1,18 @@
+import { getSegmentPalette, type BusinessType, type SegmentPalette } from "@boramarca/core";
 import { StyleSheet } from "react-native";
 
 /**
  * A linguagem visual vem do Barbershop, agora desacoplada do seu backend e
  * vocabulário. O app começa escuro porque é usado no balcão e em trânsito.
+ *
+ * O QUE É DO PRODUTO E O QUE É DA CATEGORIA. Tudo abaixo — o azul-profundo, os cinzas do
+ * texto, as cores de erro e sucesso — é do Bora Marcá e não muda de categoria para
+ * categoria. É o que faz uma manicure e uma barbearia parecerem o mesmo aplicativo.
+ *
+ * O ACENTO NÃO ESTÁ AQUI. Ele vem de `@boramarca/core`, uma paleta por segmento, e chega
+ * às telas por `useAccent()`. Os campos `amber*` continuam existindo porque a barbearia
+ * é o padrão e porque estilo estático do React Native não pode depender de contexto —
+ * quem carrega acento sobrescreve a cor na hora de desenhar.
  */
 export const colors = {
   background: "#0C141C",
@@ -23,6 +33,20 @@ export const colors = {
   info: "#60A5FA",
   white: "#FFFFFF",
 } as const;
+
+/**
+ * A categoria assumida antes de existir uma empresa ativa.
+ *
+ * As telas de entrada — boas-vindas, papel, login — acontecem antes de o aplicativo
+ * saber de que ramo é quem está entrando. Elas usam o âmbar, que é a cor com que o
+ * produto se apresenta hoje. Não é fallback por descuido: é a identidade do Bora Marcá
+ * enquanto ele não sabe com quem está falando.
+ */
+export const DEFAULT_SEGMENT: BusinessType = "barbershop";
+
+export function accentFor(segment: BusinessType | null | undefined): SegmentPalette {
+  return getSegmentPalette(segment ?? DEFAULT_SEGMENT);
+}
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, hero: 48 } as const;
 export const radius = { chip: 8, input: 12, card: 16, modal: 24, round: 999 } as const;

@@ -21,6 +21,7 @@ import {
   type LucideProps,
 } from "lucide-react-native";
 
+import { useAccent } from "./accent";
 import { colors, elevation, radius, space, type } from "./theme";
 
 export type Icon = ComponentType<LucideProps>;
@@ -40,11 +41,12 @@ export function PrimaryButton({ label, onPress, disabled, loading, icon: Icon }:
   readonly loading?: boolean;
   readonly icon?: Icon;
 }) {
+  const accent = useAccent();
   const scale = useRef(new Animated.Value(1)).current;
   const unavailable = Boolean(disabled || loading);
   const animate = (to: number) => Animated.spring(scale, { toValue: to, useNativeDriver: true, damping: 16, stiffness: 280 }).start();
   return (
-    <Animated.View style={[{ transform: [{ scale }] }, elevation.primary]}>
+    <Animated.View style={[{ transform: [{ scale }] }, elevation.primary, { shadowColor: accent.accent }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ disabled: unavailable, busy: loading }}
@@ -52,10 +54,10 @@ export function PrimaryButton({ label, onPress, disabled, loading, icon: Icon }:
         onPress={onPress}
         onPressIn={() => animate(0.97)}
         onPressOut={() => animate(1)}
-        style={({ pressed }) => [styles.primaryButton, unavailable && styles.buttonDisabled, pressed && styles.buttonPressed]}
+        style={({ pressed }) => [styles.primaryButton, { backgroundColor: accent.accent }, unavailable && styles.buttonDisabled, pressed && styles.buttonPressed]}
       >
-        {loading ? <ActivityIndicator color={colors.onAmber} /> : Icon ? <Icon color={colors.onAmber} size={20} strokeWidth={2.4} /> : null}
-        <Text style={styles.primaryButtonText}>{label}</Text>
+        {loading ? <ActivityIndicator color={accent.onAccent} /> : Icon ? <Icon color={accent.onAccent} size={20} strokeWidth={2.4} /> : null}
+        <Text style={[styles.primaryButtonText, { color: accent.onAccent }]}>{label}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -71,7 +73,8 @@ export function SecondaryButton({ label, onPress, icon: Icon, disabled = false }
 }
 
 export function TextAction({ label, onPress }: { readonly label: string; readonly onPress: () => void }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.textAction, pressed && styles.buttonPressed]}><Text style={styles.textActionText}>{label}</Text></Pressable>;
+  const accent = useAccent();
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.textAction, pressed && styles.buttonPressed]}><Text style={[styles.textActionText, { color: accent.accent }]}>{label}</Text></Pressable>;
 }
 
 export function ScreenHeader({ title, subtitle, onBack, right }: {
@@ -84,7 +87,8 @@ export function ScreenHeader({ title, subtitle, onBack, right }: {
 }
 
 export function Field({ label, error, ...props }: { readonly label: string; readonly error?: string } & TextInputProps) {
-  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput placeholderTextColor={colors.muted} style={[styles.input, error && styles.inputError]} {...props} />{error ? <Text style={styles.errorText}>{error}</Text> : null}</View>;
+  const accent = useAccent();
+  return <View style={styles.field}><Text style={[styles.fieldLabel, { color: accent.accentLight }]}>{label}</Text><TextInput placeholderTextColor={colors.muted} style={[styles.input, error && styles.inputError]} {...props} />{error ? <Text style={styles.errorText}>{error}</Text> : null}</View>;
 }
 
 export function Notice({ children, tone = "info" }: { readonly children: ReactNode; readonly tone?: "info" | "danger" | "success" }) {
@@ -108,7 +112,8 @@ export function SelectRow({ title, subtitle, selected, onPress, icon: Icon }: {
   readonly onPress: () => void;
   readonly icon?: Icon;
 }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={({ pressed }) => [styles.selectRow, selected && styles.selectRowSelected, pressed && styles.buttonPressed]}>{Icon ? <View style={[styles.selectIcon, selected && styles.selectIconSelected]}><Icon color={selected ? colors.onAmber : colors.amber} size={21} /></View> : null}<View style={styles.selectContent}><Text style={styles.selectTitle}>{title}</Text>{subtitle ? <Text style={styles.selectSubtitle}>{subtitle}</Text> : null}</View>{selected ? <View style={styles.check}><Check color={colors.onAmber} size={15} strokeWidth={3} /></View> : <ChevronRight color={colors.muted} size={20} />}</Pressable>;
+  const accent = useAccent();
+  return <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress} style={({ pressed }) => [styles.selectRow, selected && [styles.selectRowSelected, { borderColor: accent.accent, backgroundColor: accent.accentSoft }], pressed && styles.buttonPressed]}>{Icon ? <View style={[styles.selectIcon, selected && { backgroundColor: accent.accent }]}><Icon color={selected ? accent.onAccent : accent.accent} size={21} /></View> : null}<View style={styles.selectContent}><Text style={styles.selectTitle}>{title}</Text>{subtitle ? <Text style={styles.selectSubtitle}>{subtitle}</Text> : null}</View>{selected ? <View style={[styles.check, { backgroundColor: accent.accent }]}><Check color={accent.onAccent} size={15} strokeWidth={3} /></View> : <ChevronRight color={colors.muted} size={20} />}</Pressable>;
 }
 
 export function AppointmentCard({ time, title, subtitle, status = "Confirmado", onPress }: {
@@ -118,12 +123,14 @@ export function AppointmentCard({ time, title, subtitle, status = "Confirmado", 
   readonly status?: string;
   readonly onPress?: () => void;
 }) {
-  const content = <><View style={styles.appointmentTime}><Clock3 color={colors.amber} size={18} /><Text style={styles.appointmentHour}>{time}</Text></View><View style={styles.appointmentCopy}><Text style={styles.appointmentTitle}>{title}</Text><Text style={styles.appointmentSubtitle}>{subtitle}</Text></View><View style={styles.statusChip}><Text style={styles.statusText}>{status}</Text></View></>;
+  const accent = useAccent();
+  const content = <><View style={styles.appointmentTime}><Clock3 color={accent.accent} size={18} /><Text style={[styles.appointmentHour, { color: accent.accentLight }]}>{time}</Text></View><View style={styles.appointmentCopy}><Text style={styles.appointmentTitle}>{title}</Text><Text style={styles.appointmentSubtitle}>{subtitle}</Text></View><View style={styles.statusChip}><Text style={styles.statusText}>{status}</Text></View></>;
   return onPress ? <Pressable onPress={onPress} style={({ pressed }) => [styles.appointment, pressed && styles.buttonPressed]}>{content}</Pressable> : <View style={styles.appointment}>{content}</View>;
 }
 
 export function EmptyState({ title, body, action }: { readonly title: string; readonly body: string; readonly action?: ReactNode }) {
-  return <View style={styles.empty}><CalendarDays color={colors.amber} size={30} /><Text style={styles.emptyTitle}>{title}</Text><Text style={styles.emptyBody}>{body}</Text>{action ? <View style={styles.emptyAction}>{action}</View> : null}</View>;
+  const accent = useAccent();
+  return <View style={styles.empty}><CalendarDays color={accent.accent} size={30} /><Text style={styles.emptyTitle}>{title}</Text><Text style={styles.emptyBody}>{body}</Text>{action ? <View style={styles.emptyAction}>{action}</View> : null}</View>;
 }
 
 const styles = StyleSheet.create({

@@ -6,7 +6,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { isSupabaseConfigured, supabase } from "../../supabaseConfig";
 import { colors } from "./theme";
-import { BoraStateProvider } from "./state";
+import { AccentProvider } from "./accent";
+import { BoraStateProvider, useBoraState } from "./state";
 import { AuthScreen, BusinessSetupScreen, ContextsScreen, JoinBusinessScreen, RoleScreen, WelcomeScreen } from "./AuthFlow";
 import { BusinessTabs, CustomerBookingScreen, CustomerTabs, StaffBookingScreen } from "./Navigation";
 
@@ -47,7 +48,19 @@ export function BoraMarcaApp() {
   if (!isSupabaseConfigured) return <ConfigurationRequired />;
   if (loading) return <BootScreen />;
 
-  return <SafeAreaProvider><StatusBar barStyle="light-content" backgroundColor={colors.background} /><BoraStateProvider session={session}><NavigationContainer theme={navigationTheme}><RootNavigator signedIn={Boolean(session)} /></NavigationContainer></BoraStateProvider></SafeAreaProvider>;
+  return <SafeAreaProvider><StatusBar barStyle="light-content" backgroundColor={colors.background} /><BoraStateProvider session={session}><AccentFromContext><NavigationContainer theme={navigationTheme}><RootNavigator signedIn={Boolean(session)} /></NavigationContainer></AccentFromContext></BoraStateProvider></SafeAreaProvider>;
+}
+
+/**
+ * O acento segue a empresa ativa.
+ *
+ * Fica DENTRO do `BoraStateProvider` porque lê dele, e FORA do `NavigationContainer`
+ * porque toda tela precisa — inclusive as de entrada, que ainda não têm empresa e caem
+ * no padrão do produto.
+ */
+function AccentFromContext({ children }: { readonly children: React.ReactNode }) {
+  const { activeContext } = useBoraState();
+  return <AccentProvider segment={activeContext?.businessType}>{children}</AccentProvider>;
 }
 
 function RootNavigator({ signedIn }: { readonly signedIn: boolean }) {

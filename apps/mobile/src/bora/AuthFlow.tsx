@@ -14,23 +14,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Building2,
-  CarFront,
   CircleUserRound,
-  HeartPulse,
   LogIn,
   Mail,
-  PawPrint,
   QrCode,
-  Scissors,
-  Sparkles,
   Store,
-  UsersRound,
 } from "lucide-react-native";
 
 import { supabase } from "../../supabaseConfig";
 import { createBusiness, listBusinessContexts, listCustomerContexts, redeemInvitation, selectBusiness } from "../v1/repositories";
 import type { BusinessContext } from "../v1/domain";
 import type { RootStackParamList } from "./BoraMarcaApp";
+import { SegmentPreview } from "./accent";
+import { segmentIcon } from "./segment-art";
 import { useBoraState } from "./state";
 import { colors, elevation, radius, space, type } from "./theme";
 import { AppIcon, BrandMark, Field, Notice, PrimaryButton, ScreenHeader, SecondaryButton, SelectRow, Surface, TextAction } from "./ui";
@@ -120,8 +116,6 @@ export function ContextsScreen({ navigation }: Props<"Contexts">) {
     </>}</ScrollView></SafeAreaView>;
 }
 
-const segmentIcons = [Scissors, CarFront, Sparkles, HeartPulse, UsersRound, PawPrint];
-
 export function BusinessSetupScreen({ navigation }: Props<"BusinessSetup">) {
   const { user, setActiveContext } = useBoraState();
   const [name, setName] = useState("");
@@ -142,12 +136,12 @@ export function BusinessSetupScreen({ navigation }: Props<"BusinessSetup">) {
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível criar a empresa."); }
     finally { setLoading(false); }
   }
-  return <SafeAreaView style={styles.page} edges={["top", "bottom"]}><ScrollView contentContainerStyle={styles.setupScroll}><ScreenHeader onBack={() => navigation.goBack()} title="Abra sua empresa" subtitle="Escolha o segmento agora. A agenda e os nomes se adaptam a ele." />{error ? <Notice tone="danger">{error}</Notice> : null}
+  return <SegmentPreview segment={segment}><SafeAreaView style={styles.page} edges={["top", "bottom"]}><ScrollView contentContainerStyle={styles.setupScroll}><ScreenHeader onBack={() => navigation.goBack()} title="Abra sua empresa" subtitle="Escolha o segmento agora. A agenda e os nomes se adaptam a ele." />{error ? <Notice tone="danger">{error}</Notice> : null}
     <View style={styles.setupStep}><Text style={styles.setupProgress}>PASSO 1 DE 2</Text><Text style={styles.setupStepTitle}>Qual é o seu segmento?</Text><Text style={styles.setupStepBody}>Começamos com as funções essenciais e liberamos os módulos certos para sua operação.</Text></View>
-    <View style={styles.segmentList}>{BUSINESS_TYPES.map((businessType, index) => { const config = getSegmentConfig(businessType); const Icon = segmentIcons[index % segmentIcons.length]; return <SelectRow key={businessType} title={config.label} subtitle={`${config.labels.professionalPlural} · ${config.labels.appointmentPlural}`} selected={segment === businessType} onPress={() => setSegment(businessType)} icon={Icon} />; })}</View>
+    <View style={styles.segmentList}>{BUSINESS_TYPES.map((businessType) => { const config = getSegmentConfig(businessType); return <SegmentPreview key={businessType} segment={businessType}><SelectRow title={config.label} subtitle={`${config.labels.professionalPlural} · ${config.labels.appointmentPlural}`} selected={segment === businessType} onPress={() => setSegment(businessType)} icon={segmentIcon(businessType)} /></SegmentPreview>; })}</View>
     <View style={styles.setupStep}><Text style={styles.setupProgress}>PASSO 2 DE 2</Text><Text style={styles.setupStepTitle}>Como sua empresa se chama?</Text></View><Field label="Nome da empresa" value={name} onChangeText={setName} placeholder={`Ex.: ${labels.professionalPlural} do Gustavo`} autoCapitalize="words" />
     <PrimaryButton label="Criar minha empresa" onPress={() => void create()} loading={loading} />
-  </ScrollView></SafeAreaView>;
+  </ScrollView></SafeAreaView></SegmentPreview>;
 }
 
 export function JoinBusinessScreen({ navigation }: Props<"JoinBusiness">) {

@@ -27,6 +27,10 @@ export {
 
 export type { CategoriaDoCatalogo } from "./segments/catalogo";
 
+export { SEGMENT_PALETTES, getSegmentPalette } from "./segments/paletas";
+
+export type { SegmentPalette } from "./segments/paletas";
+
 export type {
   BusinessType,
   FeatureKey,
