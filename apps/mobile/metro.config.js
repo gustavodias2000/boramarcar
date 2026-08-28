@@ -1,3 +1,4 @@
+const path = require('path');
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 
 /**
@@ -6,16 +7,15 @@ const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
  *
  * @type {import('@react-native/metro-config').MetroConfig}
  */
+const repositoryRoot = path.resolve(__dirname, '../..');
+
 const config = {
+  watchFolders: [path.join(repositoryRoot, 'packages/core')],
   resolver: {
-    // CORREÇÃO: o Metro 0.82+ (RN 0.80) ativa "package exports" por padrão,
-    // o que quebra o Firebase Web SDK no React Native com o erro
-    // "Component auth has not been registered yet" (o @firebase/app e o
-    // @firebase/auth carregam de cópias diferentes do pacote).
-    // Desligando, o Metro resolve pelos campos react-native/browser/main,
-    // que o Firebase suporta corretamente.
-    // Ref: github.com/firebase/firebase-js-sdk/issues/8657
-    unstable_enablePackageExports: false,
+    nodeModulesPaths: [
+      path.join(__dirname, 'node_modules'),
+      path.join(repositoryRoot, 'node_modules'),
+    ],
   },
 };
 

@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
 // Carrega as credenciais de assinatura do release de um arquivo que NÃO é
 // versionado (android/keystore.properties). Se o arquivo não existir, o
@@ -32,13 +33,13 @@ if (requestedReleaseTask && !hasReleaseKeystore) {
 react {
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
-    // root = file("../../")
+    root = file("../..")
     //   The folder where the react-native NPM package is. Default is ../../node_modules/react-native
-    // reactNativeDir = file("../../node_modules/react-native")
+    reactNativeDir = file("../../../../node_modules/react-native")
     //   The folder where the react-native Codegen package is. Default is ../../node_modules/@react-native/codegen
-    // codegenDir = file("../../node_modules/@react-native/codegen")
+    codegenDir = file("../../../../node_modules/@react-native/codegen")
     //   The cli.js file which is the React Native CLI entrypoint. Default is ../../node_modules/react-native/cli.js
-    // cliFile = file("../../node_modules/react-native/cli.js")
+    cliFile = file("../../../../node_modules/react-native/cli.js")
 
     /* Variants */
     //   The list of variants to that are debuggable. For those we're going to
@@ -112,9 +113,9 @@ android {
         }
     }
 
-    namespace "com.barbershopapp"
+    namespace "com.boramarca.mobile"
     defaultConfig {
-        applicationId "com.barbershopapp"
+        applicationId "com.boramarca.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -160,6 +161,3 @@ dependencies {
         implementation jscFlavor
     }
 }
-
-
-apply plugin: 'com.google.gms.google-services'

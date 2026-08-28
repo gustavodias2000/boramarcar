@@ -1,4 +1,4 @@
-package com.barbershopapp
+package com.boramarca.mobile
 
 import android.app.Application
 import com.facebook.react.PackageList
