@@ -174,7 +174,15 @@ select set_eq(
       -- motivo de bloqueio gravado depois da criacao (BloqueioRepository do app)
       ('set_scheduling_block_note'),
       -- codigo de convite sob demanda (garantirConvite, do Barbershop)
-      ('ensure_invitation_code')
+      ('ensure_invitation_code'),
+      -- a porta do cliente final na lista de espera (ListaEsperaRepository do app).
+      -- `current_customer_id` PRECISA de EXECUTE mesmo sendo SECURITY DEFINER: ela e
+      -- chamada de dentro de `appointment_waitlist_select_self`, e expressao de
+      -- politica roda com o privilegio de quem consulta. Foi esse esquecimento que
+      -- deixou o razao financeiro ilegivel pela API (F-0).
+      ('current_customer_id'),
+      ('join_waitlist'),
+      ('leave_waitlist')
   $$,
   'exactly the intended RPCs are executable by authenticated'
 );
