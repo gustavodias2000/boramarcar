@@ -172,7 +172,9 @@ select set_eq(
       ('ban_customer'),
       ('unban_customer'),
       -- motivo de bloqueio gravado depois da criacao (BloqueioRepository do app)
-      ('set_scheduling_block_note')
+      ('set_scheduling_block_note'),
+      -- codigo de convite sob demanda (garantirConvite, do Barbershop)
+      ('ensure_invitation_code')
   $$,
   'exactly the intended RPCs are executable by authenticated'
 );
