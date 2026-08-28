@@ -33,7 +33,13 @@ import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/client";
 export type TenantMode = "unconfigured" | "demonstration" | "live";
 
 export type TenantAccess =
-  "checking" | "unconfigured" | "unauthenticated" | "ready" | "no-membership" | "error";
+  | "checking"
+  | "unconfigured"
+  | "unauthenticated"
+  | "ready"
+  | "no-membership"
+  | "choose-business"
+  | "error";
 
 interface TenantValue {
   readonly mode: TenantMode;
@@ -89,14 +95,12 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     setAccess("checking");
     setAccessError(null);
 
-    const { data: membership, error: membershipError } = await supabase
+    const { data: memberships, error: membershipError } = await supabase
       .from("business_members")
       .select("tenant_id, role")
       .eq("user_id", sessionData.session.user.id)
       .eq("active", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
 
     if (membershipError) {
       setMode("demonstration");
@@ -107,10 +111,29 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (!membership) {
+    if (!memberships || memberships.length === 0) {
       setMode("demonstration");
       clearTenant();
       setAccess("no-membership");
+      setIsLoading(false);
+      return;
+    }
+
+    const requestedTenantId =
+      typeof window === "undefined"
+        ? null
+        : new URLSearchParams(window.location.search).get("empresa");
+    const membership = requestedTenantId
+      ? memberships.find((candidate) => candidate.tenant_id === requestedTenantId)
+      : memberships.length === 1
+        ? memberships[0]
+        : null;
+
+    if (!membership) {
+      setMode("demonstration");
+      clearTenant();
+      setAccessError("Escolha uma empresa antes de abrir a operação.");
+      setAccess("choose-business");
       setIsLoading(false);
       return;
     }
@@ -173,7 +196,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       membershipRole,
       businessType,
       isLoading,
-      blocked: access === "no-membership" || access === "error",
+      blocked: access === "no-membership" || access === "choose-business" || access === "error",
       reload: () => {
         void load();
       },

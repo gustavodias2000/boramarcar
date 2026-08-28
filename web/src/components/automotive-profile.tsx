@@ -20,7 +20,14 @@ import { MARCA } from "@/core/marca";
 import { createClient } from "@/lib/supabase/client";
 import { rolesWith, type BusinessRole } from "@boramarca/core";
 type AccountState =
-  "checking" | "loading" | "unconfigured" | "unauthenticated" | "ready" | "no-membership" | "error";
+  | "checking"
+  | "loading"
+  | "unconfigured"
+  | "unauthenticated"
+  | "ready"
+  | "no-membership"
+  | "choose-business"
+  | "error";
 
 type AccountData = {
   userId: string;
@@ -168,7 +175,7 @@ export function AutomotiveProfile({
       return;
     }
 
-    if (accessState === "no-membership") {
+    if (accessState === "no-membership" || accessState === "choose-business") {
       setAccount(null);
       setState("no-membership");
       return;

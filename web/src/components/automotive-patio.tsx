@@ -187,6 +187,11 @@ export function AutomotivePatio({ view }: { view: OperationView }) {
       return;
     }
 
+    if (accessState === "choose-business") {
+      router.replace("/inicio");
+      return;
+    }
+
     // Só redireciona depois de o segmento vir do banco. Antes disso a interface está
     // na prévia demonstrativa, que é automotiva por padrão.
     if (!segment.resolved || viewAllowed) return;
