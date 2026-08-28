@@ -27,6 +27,7 @@
     "app:android": "npm --workspace @boramarca/mobile run android",
     "app:start": "npm --workspace @boramarca/mobile run start",
     "app:typecheck": "npm --workspace @boramarca/mobile run typecheck",
+    "app:verify": "npm --workspace @boramarca/mobile run verify",
     "verify": "npm run test:db && npm run core:verify && npm run web:format:check && npm run web:lint && npm run web:typecheck && npm run web:build",
     "core:verify": "npm --workspace @boramarca/core run verify",
     "web:format:check": "npm --workspace web run format:check"

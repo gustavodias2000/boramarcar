@@ -73,3 +73,9 @@ jobs:
       - run: npm run web:lint
       - run: npm run web:typecheck
       - run: npm run web:build
+
+      # Android entra como superfície de código nesta entrega: valida o app React Native,
+      # seus testes unitários e a ausência de Firebase na superfície ativa. O build de
+      # APK continua sendo executado em um runner com Android SDK.
+      - name: App Android — limites, tipos, lint e testes
+        run: npm run app:verify
