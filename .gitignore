@@ -24,3 +24,14 @@ npm-debug.log*
 .claude/settings.local.json
 backup.sql
 *.backup.sql
+
+# Aplicativo React Native — artefato de build nativo
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/app/.cxx/
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/functions/node_modules/
+.gradle/
+.gradle-user/

@@ -1,0 +1,91 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Usada apenas quando o barbeiro escolhe "Importar contatos" na tela de Clientes -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!--
+      Android 11+ exige que o app declare explicitamente quais outros apps
+      ele pode consultar via Linking.canOpenURL().
+      Sem isso, canOpenURL('whatsapp://...') retorna false mesmo com o
+      WhatsApp instalado.
+    -->
+    <queries>
+        <!-- WhatsApp (versão padrão) -->
+        <package android:name="com.whatsapp" />
+        <!-- WhatsApp Business -->
+        <package android:name="com.whatsapp.w4b" />
+        <!-- Permite abrir links https:// (Google Calendar, etc.) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
+    <application
+      android:name=".MainApplication"
+      android:label="@string/app_name"
+      android:icon="@mipmap/ic_launcher"
+      android:roundIcon="@mipmap/ic_launcher_round"
+      android:allowBackup="false"
+      android:theme="@style/AppTheme"
+      android:supportsRtl="true">
+      <activity
+        android:name=".MainActivity"
+        android:label="@string/app_name"
+        android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
+        android:launchMode="singleTask"
+        android:windowSoftInputMode="adjustResize"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+
+        <!--
+          Deep link do QR Code/convite, esquema próprio: barbershop://agendar/{barbeiroId}
+          e barbershop://convite/{codigo}. Sem este intent-filter o Android não
+          sabe que o app responde pelo esquema "barbershop" e escanear o QR
+          Code (ou tocar num link mandado por WhatsApp) não abria nada — os
+          dois hosts (agendar/convite) precisam estar aqui, um `<data>` por
+          host, porque o Android casa scheme+host inteiros, não só o scheme.
+          BROWSABLE é obrigatório para links abertos a partir de um leitor de
+          QR Code ou do navegador; DEFAULT, para links vindos de outros apps.
+          A activity é singleTask, então o link chega via onNewIntent quando o
+          app já está aberto — o React Navigation trata isso sozinho.
+        -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="barbershop" android:host="agendar" />
+            <data android:scheme="barbershop" android:host="convite" />
+            <data android:scheme="barbershop" android:host="relatorios" />
+        </intent-filter>
+
+        <!--
+          App Link verificado (Fase — convite): mesmo convite de cima, agora
+          também por https://barbershop-5dca2.web.app/convite/{codigo}. Com
+          autoVerify + o assetlinks.json publicado no Hosting (ver
+          public/.well-known/assetlinks.json), o Android abre o app direto
+          quando instalado, e cai na página do Hosting (com botão pra Play
+          Store) quando não — o esquema "barbershop://" sozinho, acima, nunca
+          teve esse fallback, porque links de esquema próprio não caem em
+          nenhum navegador se não houver app registrado.
+        -->
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data
+                android:scheme="https"
+                android:host="barbershop-5dca2.web.app"
+                android:pathPrefix="/convite" />
+            <data
+                android:scheme="https"
+                android:host="barbershop-5dca2.web.app"
+                android:pathPrefix="/relatorios" />
+        </intent-filter>
+      </activity>
+    </application>
+</manifest>

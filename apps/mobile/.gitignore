@@ -1,0 +1,102 @@
+# OSX
+#
+.DS_Store
+
+# Xcode
+#
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+**/.xcode.env.local
+
+# Android/IntelliJ
+#
+build/
+.idea
+.gradle
+local.properties
+*.iml
+*.hprof
+.cxx/
+*.keystore
+!debug.keystore
+*.jks
+# Credenciais de assinatura do release (NUNCA versionar)
+keystore.properties
+.kotlin/
+
+# node.js
+#
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# fastlane
+#
+# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
+# screenshots whenever they are needed.
+# For more information about the recommended setup visit:
+# https://docs.fastlane.tools/best-practices/source-control/
+
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# Bundle artifact
+*.jsbundle
+
+# Ruby / CocoaPods
+**/Pods/
+/vendor/bundle/
+
+# Temporary files created by Metro to check the health of the file watcher
+.metro-health-check*
+
+# testing
+/coverage
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.env
+
+# Firebase CLI
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase-emulator-data/
+.firebase/
+
+# Cache local do Gradle (GRADLE_USER_HOME apontado para dentro do repo)
+.gradle-user/
+
+# Material de referência (vídeo/frames do app Navalha) usado só para
+# análise local — não é asset do BarberShop. Fotos reais ficam em src/assets/.
+/assets/
+
+# Backups locais do google-services.json (ex.: antes de trocar de projeto
+# Firebase) — SEC-003 da auditoria: um arquivo assim
+# (google-services.json.old-a754d) ficou no worktree sem nunca ter sido
+# versionado. Nunca deve ir para o repositório: contém API key do projeto.
+android/app/google-services.json.old*
+android/app/google-services.json.bak*
+ios/**/GoogleService-Info.plist.old*
+ios/**/GoogleService-Info.plist.bak*

@@ -5,7 +5,8 @@
   "description": "SaaS multiempresa e multi-categoria para negocios de servicos.",
   "workspaces": [
     "packages/*",
-    "web"
+    "web",
+    "apps/*"
   ],
   "scripts": {
     "db:start": "npx --yes supabase start",
@@ -19,9 +20,13 @@
     "db:lint": "node supabase/check-tests.mjs",
     "core:typecheck": "npm --workspace @boramarca/core run typecheck",
     "web:dev": "npm --workspace web run dev",
+    "web:dev:rede": "npm --workspace web run dev -- -H 0.0.0.0",
     "web:lint": "npm --workspace web run lint",
     "web:typecheck": "npm --workspace web run typecheck",
     "web:build": "npm --workspace web run build",
+    "app:android": "npm --workspace @boramarca/mobile run android",
+    "app:start": "npm --workspace @boramarca/mobile run start",
+    "app:typecheck": "npm --workspace @boramarca/mobile run typecheck",
     "verify": "npm run test:db && npm run core:verify && npm run web:format:check && npm run web:lint && npm run web:typecheck && npm run web:build",
     "core:verify": "npm --workspace @boramarca/core run verify",
     "web:format:check": "npm --workspace web run format:check"
