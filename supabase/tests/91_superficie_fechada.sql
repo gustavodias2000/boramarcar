@@ -174,6 +174,19 @@ select ok(
 -- ---------------------------------------------------------------------------
 -- A agenda deixa de ser legivel por qualquer membro
 -- ---------------------------------------------------------------------------
+-- DOIS atendimentos, de DOIS profissionais, e a diferenca entre eles e o que este bloco
+-- mede.
+--
+-- O segundo nao e cerimonia. `tests.professional`, que vem de `build_tenant`, nasce com
+-- `business_member_id = technician_member`: ele e o profissional DO TECNICO. Entao o
+-- primeiro atendimento e dele, e a assercao negativa precisa de um segundo, de outra
+-- pessoa, para ter o que NAO ver.
+--
+-- Sem esse segundo, "o profissional nao le agendamento que nao e dele" media
+-- `select id from public.appointments` inteiro e esperava lista vazia — o que so podia
+-- dar certo enquanto o unico atendimento da empresa fosse o proprio, e dava errado
+-- exatamente quando a politica funcionava. A assercao passou a nomear a linha que tem
+-- de sumir, em vez de afirmar que nada aparece.
 
 select tests.clear_auth();
 select tests.act_as(current_setting('tests.owner')::uuid);
@@ -195,6 +208,47 @@ begin
 end;
 $$;
 
+-- O colega: um segundo profissional, ligado ao membro do DONO, com o atendimento dele.
+-- 2027-05-11 e uma terca-feira, daí a regra de horario no dia 2.
+do $$
+declare
+  v_owner_member uuid;
+  v_prof uuid;
+  v_appointment public.appointments;
+begin
+  select member.id into v_owner_member
+  from public.business_members member
+  where member.tenant_id = current_setting('tests.tenant')::uuid
+    and member.user_id = current_setting('tests.owner')::uuid;
+
+  insert into public.professionals (tenant_id, business_member_id, name, created_by)
+  values (
+    current_setting('tests.tenant')::uuid,
+    v_owner_member,
+    'Profissional do proprietario',
+    current_setting('tests.owner')::uuid
+  )
+  returning id into v_prof;
+
+  perform public.set_professional_schedule_rule(
+    v_prof, 2::smallint, '09:00'::time, '18:00'::time
+  );
+
+  select * into v_appointment
+  from public.create_staff_appointment(
+    current_setting('tests.tenant')::uuid,
+    current_setting('tests.customer')::uuid,
+    current_setting('tests.service')::uuid,
+    v_prof,
+    '2027-05-11 15:00:00+00',
+    null
+  );
+
+  perform set_config('tests.prof_colega', v_prof::text, true);
+  perform set_config('tests.appointment_colega', v_appointment.id::text, true);
+end;
+$$;
+
 select isnt_empty(
   $$ select id from public.appointments
      where id = current_setting('tests.appointment')::uuid $$,
@@ -212,61 +266,19 @@ select isnt_empty(
   'control — o caixa continua vendo a agenda, porque e dela que ele cobra'
 );
 
--- O tecnico nao e o profissional deste atendimento, entao nao o alcanca — junto com o
--- campo `notes`, que e texto livre e o mais provavel de acumular dado pessoal.
+-- O tecnico nao e o profissional do atendimento do colega, entao nao o alcanca — junto
+-- com o campo `notes`, que e texto livre e o mais provavel de acumular dado pessoal.
 select tests.clear_auth();
 select tests.act_as(current_setting('tests.technician')::uuid);
 
 select is_empty(
-  $$ select id from public.appointments $$,
+  $$ select id from public.appointments
+     where id = current_setting('tests.appointment_colega')::uuid $$,
   'o profissional nao le agendamento que nao e dele'
 );
 
--- Controle positivo: o mesmo profissional, no proprio atendimento, ve.
-select tests.clear_auth();
-select tests.act_as(current_setting('tests.owner')::uuid);
-
-do $$
-declare
-  v_prof uuid;
-begin
-  insert into public.professionals (tenant_id, business_member_id, name, created_by)
-  values (
-    current_setting('tests.tenant')::uuid,
-    current_setting('tests.technician_member')::uuid,
-    'Profissional do tecnico',
-    current_setting('tests.owner')::uuid
-  )
-  returning id into v_prof;
-
-  perform public.set_professional_schedule_rule(
-    current_setting('tests.tenant')::uuid, v_prof, 2, '09:00', '18:00'
-  );
-
-  perform set_config('tests.prof_tecnico', v_prof::text, true);
-end;
-$$;
-
-do $$
-declare
-  v_appointment public.appointments;
-begin
-  select * into v_appointment
-  from public.create_staff_appointment(
-    current_setting('tests.tenant')::uuid,
-    current_setting('tests.customer')::uuid,
-    current_setting('tests.service')::uuid,
-    current_setting('tests.prof_tecnico')::uuid,
-    '2027-05-11 15:00:00+00',
-    null
-  );
-  perform set_config('tests.appointment_tecnico', v_appointment.id::text, true);
-end;
-$$;
-
-select tests.clear_auth();
-select tests.act_as(current_setting('tests.technician')::uuid);
-
+-- Controle positivo: o mesmo profissional, no proprio atendimento, ve. Os dois juntos
+-- sao o que separa "a politica filtra" de "nao havia nada para ver".
 select results_eq(
   $$ select count(*)::int from public.appointments $$,
   $$ values (1) $$,
@@ -275,7 +287,7 @@ select results_eq(
 
 select results_eq(
   $$ select id from public.appointments $$,
-  $$ select current_setting('tests.appointment_tecnico')::uuid $$,
+  $$ select current_setting('tests.appointment')::uuid $$,
   'e e o dele, nao o do colega'
 );
 
