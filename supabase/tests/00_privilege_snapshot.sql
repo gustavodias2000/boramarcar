@@ -170,7 +170,9 @@ select set_eq(
       ('set_business_slug'),
       -- banimento (BanimentoRepository do Barbershop)
       ('ban_customer'),
-      ('unban_customer')
+      ('unban_customer'),
+      -- motivo de bloqueio gravado depois da criacao (BloqueioRepository do app)
+      ('set_scheduling_block_note')
   $$,
   'exactly the intended RPCs are executable by authenticated'
 );

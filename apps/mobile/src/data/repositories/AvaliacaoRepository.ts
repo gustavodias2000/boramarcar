@@ -1,26 +1,30 @@
 /**
- * AvaliacaoRepository — único ponto de acesso à coleção `avaliacoes`.
+ * AvaliacaoRepository — avaliação de atendimento.
  *
- * ARCH-002 (auditoria, Onda 3): antes `RatingComponent.tsx` gravava direto
- * com `setDoc(doc(db, 'avaliacoes', ...))`, furando a convenção do projeto
- * de "um repositório por coleção" (ver `BanimentoRepository.ts`,
- * `ClienteContatoRepository.ts`). O id do documento é sempre o id do
- * agendamento avaliado (`avaliacoes/{agendamentoId}`) — uma avaliação por
- * agendamento, gravar duas vezes sobrescreve a primeira (mesmo
- * comportamento de antes, preservado aqui).
+ * PORTADO DO FIRESTORE PARA O SUPABASE, com as assinaturas intactas.
+ *
+ * A regra que o Barbershop estabeleceu sobreviveu inteira e virou constraint: **uma
+ * avaliação por atendimento**. Lá isso era convenção — o id do documento era o id do
+ * agendamento, então gravar duas vezes sobrescrevia. Aqui é `unique (appointment_id)` em
+ * `appointment_ratings`: reavaliar é editar, não acumular.
+ *
+ * A ESCRITA PASSA POR `record_appointment_rating`. A tabela é somente-leitura para o
+ * aplicativo, e a RPC impõe o que a tela não deveria precisar saber: só atendimento
+ * CONCLUÍDO pode ser avaliado. No Firestore essa checagem não existia em lugar nenhum.
+ *
+ * TRÊS CAMPOS DEIXARAM DE EXISTIR, e a ausência é ganho. `barbeiroNome`, `cliente`
+ * (e-mail) e `clienteNome` eram cópias desnormalizadas que o Firestore obrigava. Aqui a
+ * avaliação guarda os IDs e os nomes vêm por junção — uma verdade só, e o e-mail do
+ * cliente nem entra: é dado pessoal, mora em `customer_contacts` sob política restrita.
  */
-import { db } from '../../../firebaseConfig';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { supabase } from "../../../supabaseConfig";
 
-const ref = (agendamentoId: string) => doc(db, 'avaliacoes', agendamentoId);
-
-/** Dados de uma nova avaliação — tudo que `RatingComponent.tsx` já coletava. */
+/** Dados de uma nova avaliação — a mesma forma que `RatingComponent.tsx` já coletava. */
 export interface DadosNovaAvaliacao {
   barbeiroId: string;
   barbeiroNome?: string;
-  /** Email do cliente logado (`auth.currentUser?.email`). */
+  /** Aceito por compatibilidade e IGNORADO: e-mail de cliente é dado pessoal. */
   cliente?: string;
-  /** Uid do cliente logado (`auth.currentUser?.uid`). */
   clienteUid?: string;
   clienteNome?: string;
   rating: number;
@@ -28,30 +32,43 @@ export interface DadosNovaAvaliacao {
 }
 
 /**
- * Cria (ou sobrescreve, se já existir) a avaliação de um agendamento.
- * Mesmos campos e mesma chave de documento do `setDoc` original em
- * `RatingComponent.tsx` — extração de camada, sem mudar o que é gravado.
+ * Cria a avaliação de um atendimento. Avaliar de novo sobrescreve, como antes.
+ *
+ * `dados` continua sendo recebido inteiro para a tela não mudar, mas só `rating` e
+ * `comment` viajam: os demais campos são derivados do próprio agendamento pela RPC, que
+ * é onde eles são confiáveis. Uma tela que informa o próprio `barbeiroId` pode informar
+ * o errado.
  */
 export async function criarAvaliacao(
   agendamentoId: string,
   dados: DadosNovaAvaliacao,
 ): Promise<void> {
-  await setDoc(ref(agendamentoId), {
-    agendamentoId,
-    ...dados,
-    createdAt: serverTimestamp(),
+  const { error } = await supabase.rpc("record_appointment_rating", {
+    p_appointment_id: agendamentoId,
+    p_rating: dados.rating,
+    p_comment: dados.comment?.trim() || null,
   });
+
+  if (error) throw error;
 }
 
 /**
- * Verifica se já existe avaliação gravada para um agendamento específico.
- * Como o id do documento é o próprio id do agendamento, isso é um `get`
- * pontual — não uma listagem.
+ * Já existe avaliação para este atendimento?
+ *
+ * Consulta pontual pela chave única, não listagem — mesma característica de antes.
+ * Devolve `false` também quando a política filtra a linha, o que é a leitura correta
+ * para a tela: sem poder ver, não há o que mostrar.
  */
 export async function existeAvaliacaoParaAgendamento(
   agendamentoId?: string | null,
 ): Promise<boolean> {
   if (!agendamentoId) return false;
-  const snap = await getDoc(ref(agendamentoId));
-  return snap.exists();
+
+  const { data } = await supabase
+    .from("appointment_ratings")
+    .select("id")
+    .eq("appointment_id", agendamentoId)
+    .maybeSingle();
+
+  return data !== null;
 }
