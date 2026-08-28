@@ -1,126 +1,145 @@
 /**
- * BanimentoRepository — lista de clientes banidos por profissional.
+ * BanimentoRepository — os clientes que a empresa recusa.
  *
- * SEGURANÇA (auditoria, bloco 1): antes essa lista ficava dentro do documento
- * `barbeiros/{uid}`, que é a VITRINE PÚBLICA — qualquer usuário logado podia
- * ler nome e email de todos os clientes banidos de todos os profissionais.
+ * PORTADO DO FIRESTORE PARA O SUPABASE, com as assinaturas intactas.
  *
- * Agora ela vive numa subcoleção privada:
+ * O BANIMENTO É DA EMPRESA, NÃO DO PROFISSIONAL. No Barbershop vivia em
+ * `barbeiros/{id}/banidos/{uid}` porque não havia empresa — o barbeiro era a unidade. Aqui
+ * há, e a recusa é dela: um cliente banido pelo dono não pode contornar marcando com
+ * outro profissional da mesma casa. O `barbeiroId` continua no parâmetro de todas as
+ * funções para as telas não mudarem, e é ignorado; o alvo é a empresa ativa.
  *
- *   barbeiros/{barbeiroId}/banidos/{clienteUid}
+ * O QUE ERA TELA VIROU BANCO. No Barbershop a recusa dependia de a `AgendamentoScreen`
+ * chamar `estaBanido` antes de gravar — tela se contorna, e o agendamento passava. Aqui o
+ * gatilho `reject_banned_customer` recusa o INSERT em `appointments`, venha de onde vier.
+ * `estaBanido` deixou de ser a defesa e passou a ser só a mensagem melhor.
  *
- * As regras do Firestore permitem que o cliente leia APENAS o próprio
- * documento (`get`, necessário para a checagem de bloqueio ao agendar) —
- * listar a coleção inteira só o profissional dono (ou o dono do negócio).
+ * O CLIENTE NÃO ENXERGA MAIS O PRÓPRIO BANIMENTO, e isso é deliberado. As regras do
+ * Firestore liberavam o `get` do próprio documento; a política aqui é só de agendador.
+ * Dois motivos: o motivo do banimento é texto livre escrito pela empresa sobre uma pessoa
+ * — o campo mais provável de conter algo que ninguém quer ver vazado —, e avisar "você
+ * está banido daqui" é uma decisão da empresa, não do sistema. Para o cliente,
+ * `estaBanido` devolve falso e a recusa vem do banco com a mensagem da empresa. É
+ * exatamente o caminho de fallback que o Barbershop já documentava.
+ *
+ * A LISTA NÃO CARREGA MAIS O E-MAIL. Era cópia congelada no documento do banimento;
+ * e-mail de cliente mora em `customer_contacts`, sob política própria. A tela mostra o
+ * nome, que vem por junção e é o que ela usa para identificar a pessoa.
  */
-import { db } from '../../../firebaseConfig';
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  setDoc,
-  deleteDoc,
-  updateDoc,
-  deleteField,
-  serverTimestamp,
-} from 'firebase/firestore';
-import CacheService from '../../services/CacheService';
-import { getBarbeiro } from './BarbeiroRepository';
-import type { ClienteBanido } from '../../types';
-
-const caminho = (barbeiroId: string) =>
-  collection(db, 'barbeiros', barbeiroId, 'banidos');
+import { lerEmpresaAtiva, supabase } from "../../../supabaseConfig";
+import type { ClienteBanido } from "../../types";
 
 /**
- * Lista os clientes banidos de um profissional.
- * Só o próprio profissional (ou o dono do negócio) consegue executar.
- */
-export async function listarBanidos(barbeiroId: string): Promise<ClienteBanido[]> {
-  await migrarBanidosLegado(barbeiroId);
-  const snap = await getDocs(caminho(barbeiroId));
-  return snap.docs.map((d) => ({
-    ...(d.data() as Omit<ClienteBanido, 'uid'>),
-    uid: d.id,
-  }));
-}
-
-/**
- * Checagem pontual usada pelo cliente antes de agendar.
+ * Os clientes banidos da empresa ativa.
  *
- * Faz um `get` num documento específico (não uma listagem), que é exatamente
- * o que as regras liberam para o próprio titular. Se as regras negarem por
- * qualquer motivo, retorna `false` em vez de quebrar a tela de agendamento —
- * o profissional ainda pode recusar o atendimento manualmente.
+ * `barbeiroId` é ignorado: o banimento é da empresa. Manter o parâmetro evita mudar
+ * `ClientesBanidosScreen`, que passa o uid do profissional logado.
  */
-export async function estaBanido(
-  barbeiroId?: string | null,
-  clienteUid?: string | null,
-): Promise<boolean> {
-  if (!barbeiroId || !clienteUid) return false;
-  try {
-    const snap = await getDoc(doc(db, 'barbeiros', barbeiroId, 'banidos', clienteUid));
-    return snap.exists();
-  } catch (error: any) {
-    console.warn('Não foi possível checar banimento:', error?.message);
-    return false;
-  }
-}
+export async function listarBanidos(_barbeiroId: string): Promise<ClienteBanido[]> {
+  const tenantId = await lerEmpresaAtiva();
+  if (!tenantId) return [];
 
-/**
- * Bane um cliente. O id do documento é o uid do cliente, então banir duas
- * vezes é idempotente (não duplica).
- */
-export async function banirCliente(
-  barbeiroId: string,
-  cliente: ClienteBanido,
-): Promise<void> {
-  await setDoc(doc(db, 'barbeiros', barbeiroId, 'banidos', cliente.uid), {
-    nome: cliente.nome ?? '',
-    email: cliente.email ?? '',
-    bannedAt: serverTimestamp(),
+  const { data, error } = await supabase
+    .from("customer_bans")
+    .select("customer_id, banned_at, customers(name)")
+    .eq("tenant_id", tenantId)
+    .order("banned_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((bruta) => {
+    const linha = bruta as unknown as {
+      customer_id: string;
+      banned_at: string;
+      customers: { name: string } | null;
+    };
+
+    return {
+      uid: linha.customer_id,
+      nome: linha.customers?.name ?? "",
+      // Dado pessoal, em `customer_contacts` sob política própria. A tela identifica
+      // a pessoa pelo nome.
+      email: "",
+      bannedAt: linha.banned_at,
+    } as ClienteBanido;
   });
 }
 
-/** Remove o banimento de um cliente. */
-export async function desbanirCliente(
-  barbeiroId: string,
-  clienteUid: string,
-): Promise<void> {
-  await deleteDoc(doc(db, 'barbeiros', barbeiroId, 'banidos', clienteUid));
+/**
+ * Se o cliente está banido da empresa.
+ *
+ * Continua devolvendo `false` quando não dá para saber, que era a promessa do Barbershop
+ * — "se as regras negarem por qualquer motivo, retorna false em vez de quebrar a tela de
+ * agendamento". Agora isso vale para o cliente final por desenho, não por acidente: ele
+ * não lê `customer_bans`, e a recusa vem do gatilho no banco.
+ */
+export async function estaBanido(
+  _barbeiroId?: string | null,
+  clienteUid?: string | null,
+): Promise<boolean> {
+  if (!clienteUid) return false;
+
+  const tenantId = await lerEmpresaAtiva();
+  if (!tenantId) return false;
+
+  const { count, error } = await supabase
+    .from("customer_bans")
+    .select("customer_id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId)
+    .eq("customer_id", clienteUid);
+
+  if (error) {
+    console.warn("Não foi possível checar banimento:", error.message);
+    return false;
+  }
+
+  return (count ?? 0) > 0;
 }
 
 /**
- * Migração do formato antigo (array `clientesBanidos` dentro do doc público)
- * para a subcoleção privada. Roda no máximo uma vez por profissional: depois
- * de copiar, o campo é apagado do documento público com `deleteField()`.
+ * Bane um cliente. Idempotente, como antes: banir de novo atualiza a data em vez de
+ * duplicar.
  *
- * Só o próprio profissional consegue executar (é quem tem permissão de
- * escrita no doc); por isso a chamada é feita nas telas do barbeiro.
+ * `nome` e `email` do parâmetro são ignorados — o cadastro do cliente já os tem, e
+ * copiá-los para dentro do banimento criaria uma segunda versão que envelheceria
+ * sozinha. Só administrador bane, e a decisão vai para a trilha de auditoria com quem e
+ * quando, o que o documento do Firestore não registrava.
  */
-export async function migrarBanidosLegado(barbeiroId: string): Promise<void> {
-  try {
-    const barbeiro = await getBarbeiro(barbeiroId);
-    const legado = barbeiro?.clientesBanidos;
-    if (!legado || legado.length === 0) return;
+export async function banirCliente(
+  _barbeiroId: string,
+  cliente: ClienteBanido,
+): Promise<void> {
+  const { error } = await supabase.rpc("ban_customer", {
+    p_customer_id: cliente.uid,
+    p_reason: null,
+  });
 
-    await Promise.all(
-      legado
-        .filter((b) => !!b?.uid)
-        .map((b) =>
-          setDoc(
-            doc(db, 'barbeiros', barbeiroId, 'banidos', b.uid),
-            { nome: b.nome ?? '', email: b.email ?? '', bannedAt: serverTimestamp() },
-            { merge: true },
-          ),
-        ),
-    );
+  if (error) throw error;
+}
 
-    await updateDoc(doc(db, 'barbeiros', barbeiroId), {
-      clientesBanidos: deleteField(),
-    });
-    CacheService.invalidate(`barbeiro:${barbeiroId}`);
-  } catch (error: any) {
-    console.warn('Não foi possível migrar a lista de banidos:', error?.message);
-  }
+/** Remove o banimento. Também só administrador, e também vai para a trilha. */
+export async function desbanirCliente(
+  _barbeiroId: string,
+  clienteUid: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("unban_customer", {
+    p_customer_id: clienteUid,
+  });
+
+  if (error) throw error;
+}
+
+/**
+ * Migração do formato antigo — NÃO TEM O QUE MIGRAR AQUI.
+ *
+ * No Barbershop ela copiava o array `clientesBanidos` do documento público do barbeiro
+ * para a subcoleção privada, corrigindo um vazamento: a lista de banidos ficava na
+ * vitrine, legível por qualquer usuário logado.
+ *
+ * Este banco nasceu com `customer_bans` fechada; o formato antigo nunca existiu nele.
+ * A função continua exportada porque `BarbeiroHome` a chama ao abrir, e some junto com
+ * essa chamada quando a tela for revista.
+ */
+export async function migrarBanidosLegado(_barbeiroId: string): Promise<void> {
+  return;
 }
