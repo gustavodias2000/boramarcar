@@ -182,7 +182,14 @@ select set_eq(
       -- deixou o razao financeiro ilegivel pela API (F-0).
       ('current_customer_id'),
       ('join_waitlist'),
-      ('leave_waitlist')
+      ('leave_waitlist'),
+      -- API mínima do cliente no app Android. São RPCs SECURITY DEFINER:
+      -- não há grant de leitura de agenda, cadastro ou reservas da empresa.
+      ('list_customer_businesses'),
+      ('get_customer_booking_catalog'),
+      ('list_customer_available_slots'),
+      ('create_customer_appointment'),
+      ('list_my_customer_appointments')
   $$,
   'exactly the intended RPCs are executable by authenticated'
 );
