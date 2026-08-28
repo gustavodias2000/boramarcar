@@ -27,6 +27,16 @@
 # Onde a sessão do Supabase é guardada entre aberturas do aplicativo.
 -keep class com.reactnativecommunity.asyncstorage.** { *; }
 
+# ── Navegação e gestos ────────────────────────────────────────────────────────
+# Voltaram com a reconstrução visual: abas, pilha nativa e área segura. Módulos
+# nativos do React Native são instanciados por nome pela camada de autolinking, o
+# mesmo caminho reflexivo que fez o R8 apagar o BuildConfig acima.
+-keep class com.swmansion.rnscreens.** { *; }
+-keep class com.swmansion.gesturehandler.** { *; }
+-keep class com.swmansion.reanimated.** { *; }
+-keep class com.th3rdwave.safeareacontext.** { *; }
+-keep class com.horcrux.svg.** { *; }
+
 # ── Anotações de interface JavaScript ─────────────────────────────────────────
 -keepattributes *Annotation*
 -keepattributes JavascriptInterface

@@ -129,10 +129,10 @@ export function clearSelectedBusiness(): Promise<void> {
   return clearActiveBusiness();
 }
 
-export async function createBusiness(name: string): Promise<void> {
+export async function createBusiness(name: string, businessType: BusinessType): Promise<void> {
   const { error } = await supabase.rpc("create_business_with_owner", {
     p_name: name.trim(),
-    p_business_type: "barbershop",
+    p_business_type: businessType,
   });
   fail(error);
 }

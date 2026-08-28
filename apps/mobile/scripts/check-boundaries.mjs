@@ -21,7 +21,8 @@ async function collect(directory) {
 }
 
 const v1Files = await collect(join(root, "src", "v1"));
-const files = activeFiles.map((file) => join(root, file)).concat(v1Files);
+const boraFiles = await collect(join(root, "src", "bora"));
+const files = activeFiles.map((file) => join(root, file)).concat(v1Files, boraFiles);
 const forbidden = [
   { expression: /firebaseConfig/i, message: "configuração Firebase" },
   { expression: /from\s+["']firebase(?:\/|["'])/i, message: "SDK Firebase" },

@@ -1,3 +1,3 @@
-import { MobileApp } from "./src/v1/MobileApp";
+import { BoraMarcaApp } from "./src/bora/BoraMarcaApp";
 
-export default MobileApp;
+export default BoraMarcaApp;
