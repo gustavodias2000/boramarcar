@@ -68,8 +68,17 @@ react {
     // extraPackagerArgs = []
 
     /* Hermes Commands */
-    //   The hermes compiler command to run. By default it is 'hermesc'
-    // hermesCommand = "$rootDir/my-custom-hermesc/bin/hermesc"
+    //   O compilador do Hermes tambem mora na raiz do monorepo.
+    //
+    //   `reactNativeDir` acima ja aponta para la, mas o caminho padrao do Hermes NAO e
+    //   derivado dele: e derivado de `root`, que e a pasta do aplicativo. Como o npm ica
+    //   as dependencias para a raiz do workspace, o padrao procura em
+    //   `apps/mobile/node_modules/react-native/sdks/hermesc/...`, que nao existe.
+    //
+    //   `%OS-BIN%` e substituido pelo plugin (win64-bin, osx-bin, linux64-bin), e o
+    //   sufixo `.exe` no Windows tambem e dele. O caminho fica assim, com marcador, de
+    //   proposito: fixar `win64-bin` faria o build quebrar em qualquer outra maquina.
+    hermesCommand = "$rootDir/../../../node_modules/react-native/sdks/hermesc/%OS-BIN%/hermesc"
     //
     //   The list of flags to pass to the Hermes compiler. By default is "-O", "-output-source-map"
     // hermesFlags = ["-O", "-output-source-map"]
