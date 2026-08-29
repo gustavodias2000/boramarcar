@@ -4,12 +4,15 @@ import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import type { BusinessType } from "@boramarca/core";
+
 import { isSupabaseConfigured, supabase } from "../../supabaseConfig";
 import { colors } from "./theme";
 import { AccentProvider } from "./accent";
+import { Onboarding, marcarOnboardingVisto, type OnboardingProfile } from "./onboarding";
 import { BoraStateProvider, useBoraState } from "./state";
 import { AuthScreen, BusinessSetupScreen, ContextsScreen, JoinBusinessScreen, RoleScreen, WelcomeScreen } from "./AuthFlow";
-import { BusinessTabs, CustomerBookingScreen, CustomerTabs, StaffBookingScreen } from "./Navigation";
+import { BusinessTabs, CustomerBookingScreen, CustomerTabs, EquipeScreen, ServicosScreen, StaffBookingScreen } from "./Navigation";
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -22,6 +25,9 @@ export type RootStackParamList = {
   CustomerTabs: undefined;
   CustomerBooking: undefined;
   StaffBooking: undefined;
+  Onboarding: { profile: OnboardingProfile; segment: BusinessType; destino: "BusinessTabs" | "CustomerTabs" };
+  Servicos: undefined;
+  Equipe: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -69,16 +75,31 @@ function RootNavigator({ signedIn }: { readonly signedIn: boolean }) {
       <Stack.Screen name="Contexts" component={ContextsScreen} />
       <Stack.Screen name="BusinessSetup" component={BusinessSetupScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="JoinBusiness" component={JoinBusinessScreen} options={{ animation: "slide_from_bottom" }} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="BusinessTabs" component={BusinessTabs} />
       <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
       <Stack.Screen name="CustomerBooking" component={CustomerBookingScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="StaffBooking" component={StaffBookingScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="Servicos" component={ServicosScreen} options={{ animation: "slide_from_right" }} />
+      <Stack.Screen name="Equipe" component={EquipeScreen} options={{ animation: "slide_from_right" }} />
     </> : <>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Role" component={RoleScreen} options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="Auth" component={AuthScreen} options={{ animation: "slide_from_bottom" }} />
     </>}
   </Stack.Navigator>;
+}
+
+/**
+ * As boas-vindas do primeiro acesso.
+ *
+ * Vive na pilha, e nao dentro das abas, porque ela substitui a tela — nao e um passo
+ * dentro do produto, e sim o que vem antes dele. `reset` no fim para o botao voltar nao
+ * trazer a apresentacao de volta depois de vista.
+ */
+function OnboardingScreen({ navigation, route }: { readonly navigation: { reset: (state: { index: number; routes: { name: keyof RootStackParamList }[] }) => void }; readonly route: { params: RootStackParamList["Onboarding"] } }) {
+  const { profile, segment, destino } = route.params;
+  return <Onboarding profile={profile} segment={segment} onFinish={() => { void marcarOnboardingVisto(profile, segment); navigation.reset({ index: 0, routes: [{ name: destino }] }); }} />;
 }
 
 function BootScreen() {

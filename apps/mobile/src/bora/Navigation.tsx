@@ -38,6 +38,7 @@ import {
   setDefaultAvailability,
 } from "../v1/repositories";
 import type { RootStackParamList } from "./BoraMarcaApp";
+import { ManagementMenu } from "./Management";
 import { SegmentArt } from "./segment-art";
 import { useBoraState } from "./state";
 import { asStartAt, colors, dayKey, elevation, radius, shortDate, space, timeOf, type } from "./theme";
@@ -60,7 +61,7 @@ export function BusinessTabs() {
   return <BusinessTab.Navigator screenOptions={tabStyle}>
     <BusinessTab.Screen name="Inicio" component={BusinessHomeScreen} options={{ title: "Início", tabBarIcon: ({ color, size }) => <Store color={color} size={size} /> }} />
     <BusinessTab.Screen name="Agenda" component={BusinessAgendaScreen} options={{ title: "Agenda", tabBarIcon: ({ color, size }) => <CalendarDays color={color} size={size} /> }} />
-    <BusinessTab.Screen name="Gestao" component={BusinessManagementScreen} options={{ title: "Gestão", tabBarIcon: ({ color, size }) => <Settings2 color={color} size={size} /> }} />
+    <BusinessTab.Screen name="Gestao" component={ManagementMenu} options={{ title: "Gestão", tabBarIcon: ({ color, size }) => <Settings2 color={color} size={size} /> }} />
     <BusinessTab.Screen name="Relatorios" component={BusinessReportsScreen} options={{ title: "Relatórios", tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} /> }} />
     <BusinessTab.Screen name="Perfil" component={BusinessProfileScreen} options={{ title: "Perfil", tabBarIcon: ({ color, size }) => <UserRound color={color} size={size} /> }} />
   </BusinessTab.Navigator>;
@@ -126,18 +127,36 @@ function BusinessAgendaScreen() {
   </ScrollView></SafeAreaView>;
 }
 
-function BusinessManagementScreen() {
-  const { activeContext, services, professionals, loading, error, refresh } = useBusinessData();
-  const [serviceName, setServiceName] = useState(""); const [duration, setDuration] = useState("30"); const [professionalName, setProfessionalName] = useState(""); const [saving, setSaving] = useState(false); const [feedback, setFeedback] = useState<string | null>(null);
+/**
+ * Servicos e Equipe sairam de dentro da Gestao e viraram telas proprias.
+ *
+ * A Gestao passou a ser o MENU do Barbershop — dezesseis itens em quatro grupos — e um
+ * menu nao pode ter dois formularios embutidos no meio. Cada uma abre da lista, com
+ * volta, como no original.
+ */
+export function ServicosScreen({ navigation }: { readonly navigation: NavigationProp<RootStackParamList> }) {
+  const { activeContext, services, loading, error, refresh } = useBusinessData();
+  const [serviceName, setServiceName] = useState(""); const [duration, setDuration] = useState("30"); const [saving, setSaving] = useState(false); const [feedback, setFeedback] = useState<string | null>(null);
+  if (!activeContext) return <ContextMissing />;
+  const tenantId = activeContext.id;
+  async function addNewService() { if (!serviceName.trim()) return; setSaving(true); try { await addService(tenantId, serviceName, Number(duration) || 30); setServiceName(""); setFeedback("Servico adicionado."); await refresh(); } catch (reason) { setFeedback(reason instanceof Error ? reason.message : "Nao foi possivel salvar o servico."); } finally { setSaving(false); } }
+  return <SafeAreaView style={styles.screen} edges={["top"]}><ScrollView contentContainerStyle={styles.scroll}><ScreenHeader onBack={() => navigation.goBack()} title="Meus Serviços" subtitle="Cadastre serviços com duração e preço." />{error ? <Notice tone="danger">{error}</Notice> : null}{feedback ? <Notice tone="success">{feedback}</Notice> : null}
+    <View style={styles.blocoForm}><Surface style={styles.formSurface}><Field label="Nome do serviço" value={serviceName} onChangeText={setServiceName} placeholder="Ex.: Corte clássico" /><Field label="Duração em minutos" value={duration} onChangeText={setDuration} keyboardType="numeric" placeholder="30" /><PrimaryButton label="Adicionar serviço" onPress={() => void addNewService()} loading={saving} icon={Plus} /></Surface>
+    {loading ? <LoadingBlock /> : services.length ? services.map((service) => <SelectRow key={service.id} title={service.name} subtitle={`${service.durationMinutes} min`} onPress={() => undefined} icon={Wrench} />) : <EmptyState title="Nenhum serviço ainda" body="Cadastre o primeiro serviço para que ele apareça na agenda." />}</View>
+  </ScrollView></SafeAreaView>;
+}
+
+export function EquipeScreen({ navigation }: { readonly navigation: NavigationProp<RootStackParamList> }) {
+  const { activeContext, professionals, loading, error, refresh } = useBusinessData();
+  const [professionalName, setProfessionalName] = useState(""); const [saving, setSaving] = useState(false); const [feedback, setFeedback] = useState<string | null>(null);
   if (!activeContext) return <ContextMissing />;
   const tenantId = activeContext.id;
   const labels = getSegmentConfig(activeContext.businessType).labels;
-  async function addNewService() { if (!serviceName.trim()) return; setSaving(true); try { await addService(tenantId, serviceName, Number(duration) || 30); setServiceName(""); setFeedback("Serviço adicionado."); await refresh(); } catch (reason) { setFeedback(reason instanceof Error ? reason.message : "Não foi possível salvar o serviço."); } finally { setSaving(false); } }
-  async function addNewProfessional() { if (!professionalName.trim()) return; setSaving(true); try { await addProfessional(tenantId, professionalName); setProfessionalName(""); setFeedback(`${labels.professional} adicionado. Defina a disponibilidade abaixo.`); await refresh(); } catch (reason) { setFeedback(reason instanceof Error ? reason.message : "Não foi possível salvar o profissional."); } finally { setSaving(false); } }
-  async function applyAvailability(id: string) { setSaving(true); try { await setDefaultAvailability(id); setFeedback("Disponibilidade de segunda a sábado, das 09h às 18h, aplicada."); } catch (reason) { setFeedback(reason instanceof Error ? reason.message : "Não foi possível salvar a disponibilidade."); } finally { setSaving(false); } }
-  return <SafeAreaView style={styles.screen} edges={["top"]}><ScrollView contentContainerStyle={styles.scroll}><ScreenHeader title="Gestão" subtitle="Monte o catálogo e a equipe que aparecem na agenda." />{error ? <Notice tone="danger">{error}</Notice> : null}{feedback ? <Notice tone="success">{feedback}</Notice> : null}
-    <SectionTitle>Serviços</SectionTitle><Surface style={styles.formSurface}><Field label="Nome do serviço" value={serviceName} onChangeText={setServiceName} placeholder="Ex.: Corte clássico" /><Field label="Duração em minutos" value={duration} onChangeText={setDuration} keyboardType="numeric" placeholder="30" /><PrimaryButton label="Adicionar serviço" onPress={() => void addNewService()} loading={saving} icon={Plus} /></Surface>{loading ? <LoadingBlock /> : services.map((service) => <SelectRow key={service.id} title={service.name} subtitle={`${service.durationMinutes} min`} onPress={() => undefined} icon={Wrench} />)}
-    <SectionTitle>{labels.professionalPlural}</SectionTitle><Surface style={styles.formSurface}><Field label={`Nome do ${labels.professional.toLowerCase()}`} value={professionalName} onChangeText={setProfessionalName} placeholder={`Nome do ${labels.professional.toLowerCase()}`} autoCapitalize="words" /><PrimaryButton label={`Adicionar ${labels.professional.toLowerCase()}`} onPress={() => void addNewProfessional()} loading={saving} icon={Plus} /></Surface>{professionals.map((professional) => <Surface key={professional.id} style={styles.personSurface}><View style={styles.personCopy}><Text style={styles.personName}>{professional.name}</Text><Text style={styles.personMeta}>{labels.professional}</Text></View><SecondaryButton label="Aplicar 09h–18h" onPress={() => void applyAvailability(professional.id)} disabled={saving} /></Surface>)}
+  async function addNewProfessional() { if (!professionalName.trim()) return; setSaving(true); try { await addProfessional(tenantId, professionalName); setProfessionalName(""); setFeedback(`${labels.professional} adicionado. Defina a disponibilidade abaixo.`); await refresh(); } catch (reason) { setFeedback(reason instanceof Error ? reason.message : "Nao foi possivel salvar o profissional."); } finally { setSaving(false); } }
+  async function applyAvailability(id: string) { setSaving(true); try { await setDefaultAvailability(id); setFeedback("Disponibilidade de segunda a sábado, das 09h às 18h, aplicada."); } catch (reason) { setFeedback(reason instanceof Error ? reason.message : "Nao foi possivel salvar a disponibilidade."); } finally { setSaving(false); } }
+  return <SafeAreaView style={styles.screen} edges={["top"]}><ScrollView contentContainerStyle={styles.scroll}><ScreenHeader onBack={() => navigation.goBack()} title="Minha Equipe" subtitle={`Cadastre ${labels.professionalPlural.toLocaleLowerCase()} e defina a disponibilidade.`} />{error ? <Notice tone="danger">{error}</Notice> : null}{feedback ? <Notice tone="success">{feedback}</Notice> : null}
+    <View style={styles.blocoForm}><Surface style={styles.formSurface}><Field label={`Nome do ${labels.professional.toLowerCase()}`} value={professionalName} onChangeText={setProfessionalName} placeholder={`Nome do ${labels.professional.toLowerCase()}`} autoCapitalize="words" /><PrimaryButton label={`Adicionar ${labels.professional.toLowerCase()}`} onPress={() => void addNewProfessional()} loading={saving} icon={Plus} /></Surface>
+    {loading ? <LoadingBlock /> : professionals.length ? professionals.map((professional) => <Surface key={professional.id} style={styles.personSurface}><View style={styles.personCopy}><Text style={styles.personName}>{professional.name}</Text><Text style={styles.personMeta}>{labels.professional}</Text></View><SecondaryButton label="Aplicar 09h–18h" onPress={() => void applyAvailability(professional.id)} disabled={saving} /></Surface>) : <EmptyState title={`Nenhum ${labels.professional.toLowerCase()} ainda`} body="Cadastre quem atende para abrir horários na agenda." />}</View>
   </ScrollView></SafeAreaView>;
 }
 
@@ -212,6 +231,7 @@ function ContextMissing() { return <SafeAreaView style={styles.screen}><EmptySta
 function nextDays(count: number): string[] { return Array.from({ length: count }, (_, index) => { const date = new Date(); date.setDate(date.getDate() + index); return dayKey(date); }); }
 
 const styles = StyleSheet.create({
+  blocoForm: { paddingHorizontal: space.xl, gap: 10 },
   screen: { flex: 1, backgroundColor: colors.background }, scroll: { flexGrow: 1, padding: space.xl, gap: 12, paddingBottom: 32 }, bookingScroll: { flexGrow: 1, gap: 12, paddingBottom: 32 },
   topline: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }, businessName: { ...type.label, color: colors.text, fontSize: 17 }, businessSegment: { ...type.micro, color: colors.textSecondary, fontWeight: "500", marginTop: 2 }, switchButton: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.chip, paddingVertical: 9, paddingHorizontal: 11 }, switchButtonText: { ...type.micro, color: colors.amberLight }, greeting: { ...type.display, color: colors.text, fontSize: 34, lineHeight: 39 }, customerHeadline: { ...type.display, color: colors.text, fontSize: 34, lineHeight: 39, marginTop: 12 }, greetingBody: { ...type.body, color: colors.textSecondary, marginBottom: 10 },
   metricRow: { flexDirection: "row", gap: 8, marginVertical: 10 }, metric: { flex: 1, minHeight: 88, borderRadius: radius.card, backgroundColor: colors.surfaceRaised, borderWidth: 1, borderColor: colors.border, padding: 12, justifyContent: "space-between" }, metricValue: { color: colors.amberLight, fontSize: 28, lineHeight: 32, fontWeight: "800" }, metricLabel: { ...type.micro, color: colors.textSecondary, fontWeight: "600" },

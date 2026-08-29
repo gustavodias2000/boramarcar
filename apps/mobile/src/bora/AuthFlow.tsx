@@ -26,6 +26,7 @@ import { createBusiness, listBusinessContexts, listCustomerContexts, redeemInvit
 import type { BusinessContext } from "../v1/domain";
 import type { RootStackParamList } from "./BoraMarcaApp";
 import { SegmentPreview } from "./accent";
+import { onboardingJaVisto, type OnboardingProfile } from "./onboarding";
 import { segmentIcon } from "./segment-art";
 import { useBoraState } from "./state";
 import { colors, elevation, radius, space, type } from "./theme";
@@ -41,7 +42,7 @@ export function WelcomeScreen({ navigation }: Props<"Welcome">) {
       <View style={styles.welcomeBottom}>
         <Text accessibilityRole="header" style={styles.welcomeTitle}>Seu negócio.{"\n"}No seu ritmo.</Text>
         <Text style={styles.welcomeBody}>Uma experiência simples para quem atende e para quem quer marcar.</Text>
-        <View style={styles.welcomeActions}><PrimaryButton label="Começar" onPress={() => navigation.navigate("Role")} /><SecondaryButton label="Já tenho uma conta" onPress={() => navigation.navigate("Auth", { mode: "signIn" })} /></View>
+        <View style={styles.welcomeActions}><PrimaryButton label="Começar" onPress={() => navigation.navigate("Role")} /></View>
       </View>
     </SafeAreaView>
   </ImageBackground>;
@@ -60,6 +61,7 @@ export function AuthScreen({ navigation, route }: Props<"Auth">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function AuthScreen({ navigation, route }: Props<"Auth">) {
     setLoading(true);
     const result = mode === "signIn"
       ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { full_name: fullName.trim() } } });
+      : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { full_name: fullName.trim(), phone: phone.replace(/\D/g, "") } } });
     setLoading(false);
     if (result.error) { setError(result.error.message); return; }
     if (mode === "signUp" && !result.data.session) setMessage("Conta criada. Confirme o e-mail para entrar.");
@@ -81,6 +83,12 @@ export function AuthScreen({ navigation, route }: Props<"Auth">) {
   return <SafeAreaView style={styles.page} edges={["top", "bottom"]}><KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}><ScrollView contentContainerStyle={styles.authScroll} keyboardShouldPersistTaps="handled"><ScreenHeader onBack={() => navigation.goBack()} title={registering ? "Crie sua conta" : "Que bom ver você"} subtitle={registering ? "Sua conta funciona como empresário e cliente." : "Entre para continuar de onde parou."} />
     <Surface style={styles.authCard}><View style={styles.authMark}><BrandMark /><Text style={styles.authCaption}>Bora Marcá</Text></View>{error ? <Notice tone="danger">{error}</Notice> : null}{message ? <Notice tone="success">{message}</Notice> : null}
       {registering ? <Field label="Como quer ser chamado" value={fullName} onChangeText={setFullName} placeholder="Seu nome" autoCapitalize="words" /> : null}
+      {/*
+        O telefone e o canal do WhatsApp — confirmacao, lembrete, aviso de vaga. Fica
+        opcional de proposito: exigi-lo barraria o cadastro de quem so quer olhar, e o
+        numero pode ser preenchido depois no perfil.
+      */}
+      {registering ? <Field label="Celular com DDD (opcional)" value={phone} onChangeText={setPhone} placeholder="(11) 90000-0000" keyboardType="phone-pad" /> : null}
       <Field label="E-mail" value={email} onChangeText={setEmail} placeholder="voce@exemplo.com" autoCapitalize="none" autoCorrect={false} keyboardType="email-address" />
       <Field label="Senha" value={password} onChangeText={setPassword} placeholder="Mínimo 6 caracteres" secureTextEntry autoCapitalize="none" />
       <PrimaryButton label={registering ? "Criar conta" : "Entrar"} onPress={() => void submit()} loading={loading} icon={registering ? Mail : LogIn} />
@@ -103,8 +111,26 @@ export function ContextsScreen({ navigation }: Props<"Contexts">) {
     finally { setLoading(false); }
   }, [user]);
   useEffect(() => { void refresh(); }, [refresh]);
+  /**
+   * Entrar num contexto passa pelas boas-vindas na PRIMEIRA vez, e so nela.
+   *
+   * O perfil vem do acesso, nao de uma escolha anterior: quem abre a propria empresa ve a
+   * apresentacao do empresario, quem entra por convite ve a do cliente. Sao conteudos
+   * diferentes porque as duas pessoas chegam com perguntas diferentes.
+   */
   async function choose(context: BusinessContext) {
-    await selectBusiness(context); setActiveContext(context); navigation.navigate(context.access === "business" ? "BusinessTabs" : "CustomerTabs");
+    await selectBusiness(context);
+    setActiveContext(context);
+
+    const profile: OnboardingProfile = context.access === "business" ? "empresario" : "cliente";
+    const destino = context.access === "business" ? "BusinessTabs" : "CustomerTabs";
+
+    if (await onboardingJaVisto(profile, context.businessType)) {
+      navigation.navigate(destino);
+      return;
+    }
+
+    navigation.navigate("Onboarding", { profile, segment: context.businessType, destino });
   }
 
   return <SafeAreaView style={styles.page} edges={["top", "bottom"]}><ScrollView contentContainerStyle={styles.contextScroll}><View style={styles.contextBrand}><BrandMark /><Pressable onPress={() => void supabase.auth.signOut()} style={styles.signOut}><Text style={styles.signOutText}>Sair</Text></Pressable></View><Text style={styles.contextTitle}>Onde você quer continuar?</Text><Text style={styles.contextSubtitle}>Suas empresas e reservas ficam separadas, sempre.</Text>{error ? <Notice tone="danger">{error}</Notice> : null}
@@ -132,7 +158,7 @@ export function BusinessSetupScreen({ navigation }: Props<"BusinessSetup">) {
       const contexts = await listBusinessContexts(user.id);
       const context = contexts.find((item) => item.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase()) ?? contexts[0];
       if (!context) throw new Error("A empresa foi criada, mas não foi possível abrir seu contexto.");
-      await selectBusiness(context); setActiveContext(context); navigation.reset({ index: 0, routes: [{ name: "BusinessTabs" }] });
+      await selectBusiness(context); setActiveContext(context); navigation.reset({ index: 0, routes: [{ name: "Onboarding", params: { profile: "empresario", segment, destino: "BusinessTabs" } }] });
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível criar a empresa."); }
     finally { setLoading(false); }
   }
@@ -155,7 +181,7 @@ export function JoinBusinessScreen({ navigation }: Props<"JoinBusiness">) {
       const contexts = await listCustomerContexts();
       const context = contexts.find((item) => item.id === tenantId);
       if (!context) throw new Error("Convite aceito. Atualize seus acessos para abrir a empresa.");
-      await selectBusiness(context); setActiveContext(context); navigation.reset({ index: 0, routes: [{ name: "CustomerTabs" }] });
+      await selectBusiness(context); setActiveContext(context); navigation.reset({ index: 0, routes: [{ name: "Onboarding", params: { profile: "cliente", segment: context.businessType, destino: "CustomerTabs" } }] });
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Não foi possível usar esse convite."); }
     finally { setLoading(false); }
   }
