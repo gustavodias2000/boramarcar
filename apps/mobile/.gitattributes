@@ -1,0 +1,6 @@
+# Fonte e Markdown usam LF de forma previsivel em qualquer sistema.
+* text=auto eol=lf
+
+# Scripts Windows preservam CRLF para execucao nativa.
+*.bat text eol=crlf
+*.ps1 text eol=crlf

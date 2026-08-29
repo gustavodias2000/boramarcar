@@ -1,0 +1,35 @@
+{
+  "name": "bora-marca",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SaaS multiempresa e multi-categoria para negocios de servicos.",
+  "workspaces": [
+    "packages/*",
+    "web",
+    "apps/*"
+  ],
+  "scripts": {
+    "db:start": "npx --yes supabase start",
+    "db:stop": "npx --yes supabase stop",
+    "db:reset": "npx --yes supabase db reset",
+    "db:push": "npx --yes supabase db push",
+    "db:link": "npx --yes supabase link",
+    "db:status": "npx --yes supabase migration list",
+    "db:dump": "npx --yes supabase db dump -f backup.sql",
+    "test:db": "node supabase/check-tests.mjs && npx --yes supabase test db",
+    "db:lint": "node supabase/check-tests.mjs",
+    "core:typecheck": "npm --workspace @boramarca/core run typecheck",
+    "web:dev": "npm --workspace web run dev",
+    "web:dev:rede": "npm --workspace web run dev -- -H 0.0.0.0",
+    "web:lint": "npm --workspace web run lint",
+    "web:typecheck": "npm --workspace web run typecheck",
+    "web:build": "npm --workspace web run build",
+    "app:android": "npm --workspace @boramarca/mobile run android",
+    "app:start": "npm --workspace @boramarca/mobile run start",
+    "app:typecheck": "npm --workspace @boramarca/mobile run typecheck",
+    "app:verify": "npm --workspace @boramarca/mobile run verify",
+    "verify": "npm run test:db && npm run core:verify && npm run web:format:check && npm run web:lint && npm run web:typecheck && npm run web:build",
+    "core:verify": "npm --workspace @boramarca/core run verify",
+    "web:format:check": "npm --workspace web run format:check"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+
+    // A ausência de "DOM" aqui é intencional e é a defesa mais forte da regra do
+    // ADR 0005: o núcleo é agnóstico de framework. Sem "DOM", qualquer uso de
+    // `window`, `document`, `localStorage` ou `fetch` do navegador não compila.
+    // A regra de lint contra importar React e React Native é a segunda camada.
+    "lib": ["ES2022"],
+
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+
+    // Permite `from "./x.ts"`. O modulo de rotas usa extensao explicita porque os
+    // testes dele rodam direto no Node (`node --test`), e o carregador ESM do Node
+    // nao adivinha extensao. Sem isto, a peca que a seguranca classificou como
+    // "errada, nao falha em teste nenhum" continuaria sem teste.
+    
+
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  // Os testes rodam em `node --test`, que e o verificador real deles. Ficam fora do
+  // tsc porque importam `node:test` e usam extensao explicita, que o alvo do pacote
+  // (consumido por bundler) nao permite.
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

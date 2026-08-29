@@ -68,7 +68,15 @@ schema_paths = []
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+# O scaffolding de teste vive em ./fixtures, FORA de ./tests, e por um motivo
+# concreto: `supabase test db` varre ./tests recursivamente, e enquanto o arquivo
+# morava em ./tests/setup ele era carregado como seed E rodado como teste — o que
+# aparecia no CI como um 17o arquivo sem plano TAP.
+#
+# Carregado aqui, e nao por migration, para que
+# pgTAP and the `tests` schema stay on developer machines and in CI and never reach a
+# deployed project through `supabase db push`.
+sql_paths = ["./seed.sql", "./fixtures/*.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.

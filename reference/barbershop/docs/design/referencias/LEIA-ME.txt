@@ -1,0 +1,15 @@
+Salve as imagens de referência nesta pasta com estes nomes exatos:
+
+  esboco-dashboard-admin.png   → esboço do ChatGPT: painel do admin (sidebar de vidro,
+                                 comparação "atual vs novo")
+
+  esboco-app-cliente.png       → esboço do ChatGPT: app do cliente, fluxo de 5 passos
+                                 (é a referência mais valiosa do pacote)
+
+Opcionais (carrossel do Instagram / frontendjoe — é código web, não reutilizável em
+React Native; o relatório já extraiu a lição de token):
+
+  referencia-sidebar-web-1.png ... referencia-sidebar-web-6.png
+
+O Claude Code lê imagem com a ferramenta Read, mas só de arquivos dentro do projeto.
+O CLAUDE.md referencia estes nomes na seção 10.

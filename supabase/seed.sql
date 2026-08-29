@@ -1,0 +1,13 @@
+-- Local seed data.
+--
+-- Referenced by `[db.seed] sql_paths` in config.toml. The file has to exist or
+-- `supabase db reset` reports a missing path (defect C-21 in the audit).
+--
+-- The per-segment catalogue this file is meant to hold — the suggested automotive
+-- services, the barbershop equivalent, the default vehicle categories — belongs to
+-- Etapa 5, together with the onboarding flow that lets a business pick a segment.
+-- Seeding services before there is a way to create a business would only produce
+-- rows with no tenant to attach them to.
+--
+-- Test scaffolding is NOT here. It lives in ./tests/setup and is loaded through the
+-- same seed mechanism, so it never reaches a deployed project.

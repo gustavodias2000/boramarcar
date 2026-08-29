@@ -1,11 +1,19 @@
 "use client";
 
-import { CarFront, Check, CircleAlert, ClipboardList, Loader2, Search, UserRound, X } from "lucide-react";
+import {
+  CarFront,
+  Check,
+  CircleAlert,
+  ClipboardList,
+  Loader2,
+  Search,
+  UserRound,
+  X,
+} from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 import {
   AutomotiveDataMode,
-  demonstrationOrders,
   displayLicensePlate,
   initialQuickEntryDraft,
   normalizeLicensePlate,
@@ -13,6 +21,8 @@ import {
   PatioOrder,
   QuickEntryDraft,
 } from "@/lib/automotive";
+import { demonstrationOrders } from "@/demo/automotive";
+import { MARCA } from "@/core/marca";
 import { createClient } from "@/lib/supabase/client";
 
 type LookupState = "idle" | "loading" | "found" | "new" | "error";
@@ -29,10 +39,18 @@ function optionalInteger(value: string) {
   return value.trim() ? Number(value) : null;
 }
 
-export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreated }: AutomotiveQuickEntryProps) {
+export function AutomotiveQuickEntry({
+  mode,
+  tenantId,
+  orders,
+  onClose,
+  onCreated,
+}: AutomotiveQuickEntryProps) {
   const [draft, setDraft] = useState<QuickEntryDraft>(initialQuickEntryDraft);
   const [lookupState, setLookupState] = useState<LookupState>("idle");
-  const [lookupMessage, setLookupMessage] = useState("Informe a placa para verificar se este veículo já passou por aqui.");
+  const [lookupMessage, setLookupMessage] = useState(
+    "Informe a placa para verificar se este veículo já passou por aqui.",
+  );
   const [isExistingVehicle, setIsExistingVehicle] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [postCommitMessage, setPostCommitMessage] = useState<string | null>(null);
@@ -45,7 +63,8 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
   const isLive = mode === "live" || mode === "empty";
 
   useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusTimer = window.setTimeout(() => plateInputRef.current?.focus(), 0);
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -97,7 +116,9 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
     }));
     setIsExistingVehicle(true);
     setLookupState("found");
-    setLookupMessage("Veículo localizado. Os dados cadastrais foram preservados para esta nova OS.");
+    setLookupMessage(
+      "Veículo localizado. Os dados cadastrais foram preservados para esta nova OS.",
+    );
   }
 
   async function lookupPlate() {
@@ -168,13 +189,15 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
     if (!vehicle.active) {
       setIsExistingVehicle(false);
       setLookupState("error");
-      setLookupMessage("Esta placa pertence a um veículo inativo. Reative o cadastro antes de abrir uma OS.");
+      setLookupMessage(
+        "Esta placa pertence a um veículo inativo. Reative o cadastro antes de abrir uma OS.",
+      );
       return;
     }
 
     const { data: customer, error: customerError } = await supabase
       .from("customers")
-      .select("name, whatsapp, active")
+      .select("name, active")
       .eq("id", vehicle.customer_id)
       .maybeSingle();
 
@@ -182,20 +205,35 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
 
     if (customerError || !customer) {
       setLookupState("error");
-      setLookupMessage("O veículo foi encontrado, mas não foi possível abrir o cadastro do cliente.");
+      setLookupMessage(
+        "O veículo foi encontrado, mas não foi possível abrir o cadastro do cliente.",
+      );
       return;
     }
 
     if (!customer.active) {
       setIsExistingVehicle(false);
       setLookupState("error");
-      setLookupMessage("O cliente deste veículo está inativo. Reative o cadastro antes de abrir uma OS.");
+      setLookupMessage(
+        "O cliente deste veículo está inativo. Reative o cadastro antes de abrir uma OS.",
+      );
       return;
     }
 
+    // O telefone é dado pessoal e mora em `customer_contacts`, com política própria
+    // (C-8). Quem não tem permissão simplesmente não recebe linha: o campo vem vazio e
+    // a entrada segue — o técnico não precisa do telefone para receber o carro.
+    const { data: contact } = await supabase
+      .from("customer_contacts")
+      .select("whatsapp, phone")
+      .eq("customer_id", vehicle.customer_id)
+      .maybeSingle();
+
+    if (lookupSequence.current !== lookupId) return;
+
     fillExistingVehicle({
       customerName: customer.name,
-      customerPhone: customer.whatsapp ?? "",
+      customerPhone: contact?.whatsapp ?? contact?.phone ?? "",
       make: vehicle.make ?? "",
       model: vehicle.model ?? "",
       color: vehicle.color ?? "",
@@ -233,7 +271,10 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
       return;
     }
 
-    if (yearModel !== null && (!Number.isInteger(yearModel) || yearModel < 1900 || yearModel > 2100)) {
+    if (
+      yearModel !== null &&
+      (!Number.isInteger(yearModel) || yearModel < 1900 || yearModel > 2100)
+    ) {
       setFormError("Informe um ano-modelo entre 1900 e 2100.");
       return;
     }
@@ -301,7 +342,9 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
     );
 
     if (entryError || !workOrder) {
-      setFormError(`Não foi possível abrir a OS: ${entryError?.message ?? "resposta vazia do servidor"}.`);
+      setFormError(
+        `Não foi possível abrir a OS: ${entryError?.message ?? "resposta vazia do servidor"}.`,
+      );
       setIsSubmitting(false);
       return;
     }
@@ -314,7 +357,9 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
 
     if (patioError || !patioOrder) {
       setHasCommitted(true);
-      setPostCommitMessage("A OS foi aberta, mas o Pátio não pôde ser atualizado. Atualize a página para vê-la.");
+      setPostCommitMessage(
+        "A OS foi aberta, mas o Pátio não pôde ser atualizado. Atualize a página para vê-la.",
+      );
       setIsSubmitting(false);
       return;
     }
@@ -324,19 +369,36 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
   }
 
   return (
-    <aside className="entry-panel" ref={panelRef} role="dialog" aria-modal="true" aria-label="Entrada rápida de veículo">
+    <aside
+      className="entry-panel"
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Entrada rápida de veículo"
+    >
       <div className="entry-panel-topline">
         <span>Recebimento</span>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="Fechar entrada rápida" disabled={isSubmitting}>
+        <button
+          className="icon-button"
+          type="button"
+          onClick={onClose}
+          aria-label="Fechar entrada rápida"
+          disabled={isSubmitting}
+        >
           <X size={18} />
         </button>
       </div>
 
       <form className="quick-entry-form" onSubmit={submitEntry}>
         <div className="entry-heading">
-          <div className="entry-heading-icon"><CarFront size={21} /></div>
+          <div className="entry-heading-icon">
+            <CarFront size={21} />
+          </div>
           <h2>Entrada rápida</h2>
-          <p>Comece pela placa. O Bora Marcá encontra o veículo ou prepara o primeiro cadastro e a OS.</p>
+          <p>
+            Comece pela placa. O {MARCA.nome} encontra o veículo ou prepara o primeiro cadastro e a
+            OS.
+          </p>
         </div>
 
         <section className="entry-section entry-plate-section">
@@ -360,8 +422,17 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
               required
             />
           </label>
-          <button className="plate-lookup-button" type="button" onClick={() => void lookupPlate()} disabled={lookupState === "loading"}>
-            {lookupState === "loading" ? <Loader2 size={17} className="spin" /> : <Search size={17} />}
+          <button
+            className="plate-lookup-button"
+            type="button"
+            onClick={() => void lookupPlate()}
+            disabled={lookupState === "loading"}
+          >
+            {lookupState === "loading" ? (
+              <Loader2 size={17} className="spin" />
+            ) : (
+              <Search size={17} />
+            )}
             Consultar
           </button>
           <div className={`plate-result plate-result-${lookupState}`} role="status">
@@ -371,43 +442,151 @@ export function AutomotiveQuickEntry({ mode, tenantId, orders, onClose, onCreate
         </section>
 
         <section className="entry-section">
-          <div className="entry-section-title"><UserRound size={16} /> <span>Cliente</span></div>
+          <div className="entry-section-title">
+            <UserRound size={16} /> <span>Cliente</span>
+          </div>
           <label className="entry-field" htmlFor="customer-name">
             <span>Nome completo</span>
-            <input id="customer-name" value={draft.customerName} onChange={(event) => updateDraft("customerName", event.target.value)} disabled={isExistingVehicle} required={!isExistingVehicle} />
+            <input
+              id="customer-name"
+              value={draft.customerName}
+              onChange={(event) => updateDraft("customerName", event.target.value)}
+              disabled={isExistingVehicle}
+              required={!isExistingVehicle}
+            />
           </label>
           <label className="entry-field" htmlFor="customer-phone">
             <span>WhatsApp</span>
-            <input id="customer-phone" value={draft.customerPhone} onChange={(event) => updateDraft("customerPhone", event.target.value)} disabled={isExistingVehicle} placeholder="(11) 99999-9999" inputMode="tel" />
+            <input
+              id="customer-phone"
+              value={draft.customerPhone}
+              onChange={(event) => updateDraft("customerPhone", event.target.value)}
+              disabled={isExistingVehicle}
+              placeholder="(11) 99999-9999"
+              inputMode="tel"
+            />
           </label>
         </section>
 
         <section className="entry-section">
-          <div className="entry-section-title"><CarFront size={16} /> <span>Veículo</span></div>
+          <div className="entry-section-title">
+            <CarFront size={16} /> <span>Veículo</span>
+          </div>
           <div className="entry-field-grid">
-            <label className="entry-field" htmlFor="vehicle-make"><span>Marca</span><input id="vehicle-make" value={draft.make} onChange={(event) => updateDraft("make", event.target.value)} disabled={isExistingVehicle} placeholder="Fiat" /></label>
-            <label className="entry-field" htmlFor="vehicle-model"><span>Modelo</span><input id="vehicle-model" value={draft.model} onChange={(event) => updateDraft("model", event.target.value)} disabled={isExistingVehicle} placeholder="Pulse" /></label>
-            <label className="entry-field" htmlFor="vehicle-color"><span>Cor</span><input id="vehicle-color" value={draft.color} onChange={(event) => updateDraft("color", event.target.value)} disabled={isExistingVehicle} placeholder="Vermelho" /></label>
-            <label className="entry-field" htmlFor="vehicle-year"><span>Ano</span><input id="vehicle-year" value={draft.yearModel} onChange={(event) => updateDraft("yearModel", event.target.value)} disabled={isExistingVehicle} placeholder="2025" inputMode="numeric" /></label>
+            <label className="entry-field" htmlFor="vehicle-make">
+              <span>Marca</span>
+              <input
+                id="vehicle-make"
+                value={draft.make}
+                onChange={(event) => updateDraft("make", event.target.value)}
+                disabled={isExistingVehicle}
+                placeholder="Fiat"
+              />
+            </label>
+            <label className="entry-field" htmlFor="vehicle-model">
+              <span>Modelo</span>
+              <input
+                id="vehicle-model"
+                value={draft.model}
+                onChange={(event) => updateDraft("model", event.target.value)}
+                disabled={isExistingVehicle}
+                placeholder="Pulse"
+              />
+            </label>
+            <label className="entry-field" htmlFor="vehicle-color">
+              <span>Cor</span>
+              <input
+                id="vehicle-color"
+                value={draft.color}
+                onChange={(event) => updateDraft("color", event.target.value)}
+                disabled={isExistingVehicle}
+                placeholder="Vermelho"
+              />
+            </label>
+            <label className="entry-field" htmlFor="vehicle-year">
+              <span>Ano</span>
+              <input
+                id="vehicle-year"
+                value={draft.yearModel}
+                onChange={(event) => updateDraft("yearModel", event.target.value)}
+                disabled={isExistingVehicle}
+                placeholder="2025"
+                inputMode="numeric"
+              />
+            </label>
           </div>
         </section>
 
         <section className="entry-section">
-          <div className="entry-section-title"><ClipboardList size={16} /> <span>Recebimento</span></div>
-          <div className="entry-field-grid">
-            <label className="entry-field" htmlFor="odometer"><span>Quilometragem</span><input id="odometer" value={draft.odometer} onChange={(event) => updateDraft("odometer", event.target.value)} placeholder="Ex.: 45200" inputMode="numeric" /></label>
-            <label className="entry-field" htmlFor="fuel-level"><span>Combustível %</span><input id="fuel-level" value={draft.fuelLevel} onChange={(event) => updateDraft("fuelLevel", event.target.value)} placeholder="Ex.: 50" inputMode="numeric" /></label>
+          <div className="entry-section-title">
+            <ClipboardList size={16} /> <span>Recebimento</span>
           </div>
-          <label className="entry-field" htmlFor="condition-notes"><span>Condição do veículo</span><textarea id="condition-notes" value={draft.conditionNotes} onChange={(event) => updateDraft("conditionNotes", event.target.value)} placeholder="Itens e avarias já identificados" rows={2} /></label>
-          <label className="entry-field" htmlFor="entry-notes"><span>Observação da OS</span><textarea id="entry-notes" value={draft.notes} onChange={(event) => updateDraft("notes", event.target.value)} placeholder="Orientações para a equipe" rows={2} /></label>
+          <div className="entry-field-grid">
+            <label className="entry-field" htmlFor="odometer">
+              <span>Quilometragem</span>
+              <input
+                id="odometer"
+                value={draft.odometer}
+                onChange={(event) => updateDraft("odometer", event.target.value)}
+                placeholder="Ex.: 45200"
+                inputMode="numeric"
+              />
+            </label>
+            <label className="entry-field" htmlFor="fuel-level">
+              <span>Combustível %</span>
+              <input
+                id="fuel-level"
+                value={draft.fuelLevel}
+                onChange={(event) => updateDraft("fuelLevel", event.target.value)}
+                placeholder="Ex.: 50"
+                inputMode="numeric"
+              />
+            </label>
+          </div>
+          <label className="entry-field" htmlFor="condition-notes">
+            <span>Condição do veículo</span>
+            <textarea
+              id="condition-notes"
+              value={draft.conditionNotes}
+              onChange={(event) => updateDraft("conditionNotes", event.target.value)}
+              placeholder="Itens e avarias já identificados"
+              rows={2}
+            />
+          </label>
+          <label className="entry-field" htmlFor="entry-notes">
+            <span>Observação da OS</span>
+            <textarea
+              id="entry-notes"
+              value={draft.notes}
+              onChange={(event) => updateDraft("notes", event.target.value)}
+              placeholder="Orientações para a equipe"
+              rows={2}
+            />
+          </label>
         </section>
 
-        {formError && <p className="entry-error" role="alert"><CircleAlert size={16} /> {formError}</p>}
-        {postCommitMessage && <p className="entry-success" role="status"><Check size={16} /> {postCommitMessage}</p>}
+        {formError && (
+          <p className="entry-error" role="alert">
+            <CircleAlert size={16} /> {formError}
+          </p>
+        )}
+        {postCommitMessage && (
+          <p className="entry-success" role="status">
+            <Check size={16} /> {postCommitMessage}
+          </p>
+        )}
 
         <div className="entry-submit-wrap">
-          <p>{isLive ? "A OS será registrada na unidade atual." : "Prévia: a OS aparecerá apenas neste Pátio."}</p>
-          <button className="primary-action entry-submit" type="submit" disabled={isSubmitting || hasCommitted}>
+          <p>
+            {isLive
+              ? "A OS será registrada na unidade atual."
+              : "Prévia: a OS aparecerá apenas neste Pátio."}
+          </p>
+          <button
+            className="primary-action entry-submit"
+            type="submit"
+            disabled={isSubmitting || hasCommitted}
+          >
             {isSubmitting ? <Loader2 size={18} className="spin" /> : <Check size={18} />}
             {isSubmitting ? "Abrindo OS..." : hasCommitted ? "OS aberta" : "Abrir OS no Pátio"}
           </button>

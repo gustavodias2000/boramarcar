@@ -1,0 +1,13 @@
+{
+  "extends": "@react-native/typescript-config",
+  "include": [
+    "App.tsx",
+    "supabaseConfig.ts",
+    "src/v1/domain.ts",
+    "src/v1/repositories.ts",
+    "src/v1/react-native-config.d.ts",
+    "src/v1/domain.test.ts",
+    "src/bora/**/*.ts",
+    "src/bora/**/*.tsx"
+  ]
+}

@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database:
+    name: Banco — migrations e pgTAP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Antes de subir contêiner nenhum: o verificador estático da suíte. Ele pega três
+      # armadilhas que custaram um ciclo de CI cada — fixture com sessão ativa, chamada a
+      # função sem EXECUTE, e `is_empty` esperado de `anon`. Zero dependência, e falha em
+      # milissegundos em vez de depois de vários minutos de imagem.
+      - name: Suíte pgTAP — verificação estática
+        run: node supabase/check-tests.mjs
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Aplica todas as migrations num banco limpo, depois carrega supabase/seed.sql e
+      # supabase/tests/setup/*.sql, de onde vêm o pgTAP e o esquema `tests`. Uma
+      # migration que não se aplica do zero falha aqui.
+      - name: Subir o Supabase
+        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector
+
+      # Roda supabase/tests/*.sql no pg_prove. O `supabase` aqui vem do setup-cli, e
+      # não do npm script — que passa pelo verificador estático já rodado acima.
+      - name: Suíte pgTAP
+        run: supabase test db
+
+      - name: Parar o Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  frontend:
+    name: Núcleo e web — lint, tipos e build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          # O repositório é um workspace npm: o lock da raiz cobre packages/* e web.
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      # O núcleo é compartilhado entre site e app. `typecheck` usa um tsconfig sem a
+      # lib "DOM", e `check:agnostic` recusa import de React, React Native ou Next.
+      # Ver docs/adr/0005.
+      # `core:verify` roda tipos, os testes do núcleo e o portão de agnosticismo. Os
+      # testes usam o TypeScript nativo do Node, com `--experimental-strip-types`
+      # explícito: sem a flag isso só funciona no Node 22.18+, e `node-version: 22`
+      # resolve para "o mais recente da linha", que pode mudar sob nós.
+      - name: Núcleo — tipos, testes e agnosticismo
+        run: npm run core:verify
+
+      # O Prettier é o que mantém a dívida de formatação paga: a Etapa 3.9 levou a
+      # maior linha de 5.642 para 207 caracteres.
+      - run: npm run web:format:check
+      - run: npm run web:lint
+      - run: npm run web:typecheck
+      - run: npm run web:build
+
+      # Android entra como superfície de código nesta entrega: valida o app React Native,
+      # seus testes unitários e a ausência de Firebase na superfície ativa. O build de
+      # APK continua sendo executado em um runner com Android SDK.
+      - name: App Android — limites, tipos, lint e testes
+        run: npm run app:verify

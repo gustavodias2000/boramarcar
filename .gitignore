@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+.next/
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude Code — os subagentes gerados sao versionados; as preferencias locais nao
+.claude/settings.local.json
+backup.sql
+*.backup.sql
+
+# Aplicativo React Native — artefato de build nativo
+apps/mobile/android/build/
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/android/app/.cxx/
+apps/mobile/ios/Pods/
+apps/mobile/ios/build/
+apps/mobile/functions/node_modules/
+.gradle/
+.gradle-user/

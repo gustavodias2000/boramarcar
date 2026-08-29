@@ -1,0 +1,824 @@
+# Resolucao das pendencias tecnicas do Barbershop
+
+Trabalhe no projeto localizado em:
+
+`D:\\Claude\\BarberShop`
+
+Sua tarefa e resolver todas as pendencias tecnicas descritas neste prompt e todas as pendencias adicionais registradas em:
+
+`docs/auditoria-geral.md`
+
+Nao faca apenas outra auditoria e nao termine oferecendo corrigir "2 ou 3 itens na proxima rodada". Confirme cada achado no codigo atual, implemente as correcoes aplicaveis, crie testes e valide o projeto completo.
+
+## Regra principal: usar agentes
+
+O uso de agentes/subagentes e obrigatorio.
+
+Crie, no minimo:
+
+- Um agente para seguranca, privacidade e rate limiting.
+- Um agente para Firebase, Firestore, Cloud Functions e custos.
+- Um agente para arquitetura, dominio e repositorios.
+- Um agente para React Native, concorrencia e notificacoes.
+- Um agente para testes unitarios, E2E e regras do Firebase.
+- Um agente para codigo morto, duplicacao, componentes e temas.
+- Um agente revisor independente que nao participe da implementacao.
+
+Use agentes adicionais sempre que houver tarefas independentes.
+
+O agente principal deve:
+
+- Ler o relatorio completo.
+- Transformar cada pendencia em um checklist.
+- Atribuir arquivos especificos aos agentes.
+- Impedir edicoes simultaneas no mesmo arquivo.
+- Revisar todos os diffs.
+- Integrar as alteracoes.
+- Executar os testes finais.
+- Corrigir regressoes.
+- Atualizar o relatorio.
+
+Nao aceite automaticamente as conclusoes dos agentes.
+
+## Protecao do trabalho atual
+
+Antes de editar:
+
+1. Verifique o estado do Git.
+2. Leia todos os diffs existentes.
+3. Preserve alteracoes feitas pelo usuario ou por trabalhos anteriores.
+4. Nao reverta arquivos modificados.
+5. Nao apague arquivos nao rastreados sem confirmar que fazem parte desta tarefa.
+6. Preserve `.claude/settings.local.json`.
+7. Nao use comandos destrutivos.
+8. Nao faca commit, push, merge ou deploy.
+
+Algumas correcoes podem ja ter sido implementadas depois da auditoria. Confirme o estado atual antes de alterar.
+
+## Checklist rastreavel
+
+Crie uma identificacao para cada pendencia:
+
+- `SEC-001`, `SEC-002`...
+- `ARCH-001`, `ARCH-002`...
+- `COST-001`, `COST-002`...
+- `PERF-001`, `PERF-002`...
+- `TEST-001`, `TEST-002`...
+- `CLEAN-001`, `CLEAN-002`...
+- `UI-001`, `UI-002`...
+
+Para cada item, registre:
+
+- Descricao.
+- Prioridade.
+- Evidencia no codigo atual.
+- Arquivos envolvidos.
+- Agente responsavel.
+- Correcao escolhida.
+- Testes necessarios.
+- Status final.
+
+Os status permitidos sao:
+
+- `pendente`
+- `em andamento`
+- `resolvido`
+- `nao se aplica`
+- `bloqueado`
+
+Nenhuma pendencia pode desaparecer do relatorio sem explicacao.
+
+## Seguranca
+
+### SEC-001: rate limiting das Cloud Functions
+
+Hoje, aparentemente, somente `sendWhatsApp` possui limitacao adequada.
+
+Confirme e implemente rate limiting tambem em:
+
+- `placesAutocomplete`
+- `placesDetails`
+- `registrarEventoOperacional`
+
+Requisitos:
+
+- O limite deve ser aplicado no backend.
+- O controle deve funcionar em multiplas instancias das Cloud Functions.
+- Nao use somente uma variavel em memoria.
+- Use operacao atomica ou transacao.
+- Separe limites por usuario e por funcao.
+- Defina janelas e limites coerentes com cada operacao.
+- Impeca uma conta de consumir toda a cota da Google Places API.
+- Limite tamanho e frequencia dos eventos de observabilidade.
+- Nao permita crescimento ilimitado dos documentos de controle.
+- Defina estrategia de expiracao ou limpeza dos registros.
+- Evite armazenar IP ou dado pessoal desnecessariamente.
+- Preserve mensagens de erro amigaveis para o aplicativo.
+
+Verifique se o limitador de `sendWhatsApp` pode ser transformado em uma implementacao reutilizavel sem alterar seu comportamento.
+
+Crie testes para:
+
+- Requisicoes dentro do limite.
+- Requisicoes acima do limite.
+- Usuarios diferentes.
+- Funcoes diferentes.
+- Expiracao da janela.
+- Usuario nao autenticado.
+- Concorrencia.
+- Falha no armazenamento do rate limit.
+
+Nao ative obrigatoriedade de App Check sem confirmar que Android, iOS, testes e ambiente de desenvolvimento estao preparados.
+
+### SEC-002: sanitizacao de observabilidade
+
+Analise:
+
+- `ObservabilityService`
+- `textoSeguroEvento`
+- Logs das Cloud Functions
+- Contextos enviados para `eventosOperacionais`
+
+Atualmente a filtragem parece considerar as chaves, mas nao necessariamente o conteudo dos valores e mensagens.
+
+Implemente sanitizacao centralizada e recursiva para:
+
+- Enderecos de e-mail.
+- Telefones.
+- Tokens Bearer.
+- API keys.
+- Senhas.
+- Refresh tokens.
+- IDs sensiveis quando nao forem necessarios.
+- Objetos e arrays aninhados.
+- Mensagens de instancias de `Error`.
+- Strings excessivamente grandes.
+
+Adicione:
+
+- Limite de profundidade.
+- Limite de quantidade de campos.
+- Limite de tamanho por texto.
+- Protecao contra objetos circulares.
+- Substituicao consistente por marcador como `[REDACTED]`.
+
+Nao destrua informacoes tecnicas uteis, como nome da operacao, codigo do erro e stack sanitizada.
+
+Crie testes com dados pessoais inseridos:
+
+- Na chave.
+- No valor.
+- Dentro da mensagem de erro.
+- Dentro de arrays.
+- Dentro de objetos aninhados.
+- Dentro da stack.
+- Em strings misturadas com texto legitimo.
+
+### SEC-003: arquivo antigo do Firebase
+
+Investigue:
+
+`android/app/google-services.json.old-a754d`
+
+Antes de remover:
+
+- Confirme que o aplicativo atual nao referencia esse arquivo.
+- Confirme qual `project_id` esta no arquivo atual.
+- Verifique se o arquivo antigo esta rastreado pelo Git.
+- Procure referencias a `barbershop-a754d`.
+- Use acesso somente leitura ao Firebase CLI ou console, se estiver disponivel, para verificar o projeto antigo.
+- Nao afirme que o projeto foi desativado sem evidencia.
+
+Se o projeto antigo estiver comprovadamente desativado e nao houver utilizacao:
+
+- Remova o backup do repositorio.
+- Proteja o projeto contra novos backups semelhantes com uma regra adequada no `.gitignore`.
+- Verifique se nao existem outros arquivos antigos equivalentes.
+
+Se nao for possivel confirmar o estado no Firebase Console:
+
+- Continue todas as outras correcoes.
+- Marque somente essa confirmacao como bloqueada.
+- Informe exatamente o que o proprietario precisa conferir.
+- Nao exponha o conteudo do arquivo no relatorio ou nos logs.
+
+### SEC-004: telefone no documento publico
+
+Analise o campo:
+
+`barbeiros/{id}.telefone`
+
+Descubra:
+
+- Se representa telefone comercial ou telefone pessoal.
+- Quais telas utilizam o campo.
+- Se ele e necessario para contato, WhatsApp, reserva ou apenas administracao.
+- Se existe uma copia privada do telefone.
+- Quais regras permitem a leitura.
+- Se todos os usuarios autenticados conseguem listar esse dado.
+
+Nao tome uma decisao silenciosa.
+
+A solucao recomendada e separar claramente:
+
+- Telefone comercial, com publicacao intencional.
+- Telefone pessoal/administrativo, sempre privado.
+
+Se o produto ainda nao possuir essa distincao, prepare a opcao mais segura e apresente ao proprietario uma decisao objetiva, sem bloquear as demais tarefas.
+
+Nao execute uma migracao destrutiva de dados sem compatibilidade com registros existentes.
+
+## Regra de negocio e arquitetura
+
+### ARCH-001: calculo de comissao
+
+Remova de `BarbeiroHome.tsx` a responsabilidade de decidir valores de comissao.
+
+O calculo financeiro deve ficar em uma camada de dominio testavel, por exemplo:
+
+- Servico de dominio puro para calcular comissao.
+- Repositorio responsavel por leitura e persistencia.
+- Tela responsavel apenas por exibir o resultado.
+
+Trabalhe sempre em centavos inteiros.
+
+Cubra casos como:
+
+- Comissao percentual.
+- Comissao zero.
+- Percentual ausente.
+- Percentual invalido.
+- Servico sem preco.
+- Arredondamento.
+- Agendamento cancelado.
+- Agendamento pendente.
+- Agendamento concluido.
+- Profissional sem equipe.
+- Alteracao historica do percentual.
+
+Confirme qual percentual deve ser usado no historico. Nao recalcule valores historicos com um percentual novo se o agendamento ja tiver uma comissao registrada.
+
+Crie testes unitarios para a regra financeira.
+
+### ARCH-002: acesso direto ao Firestore
+
+Remova acessos diretos ao Firestore de:
+
+- `HistoricoClienteScreen.tsx`
+- `RatingComponent.tsx`
+
+Crie ou reutilize repositorios proprios para:
+
+- Historico de agendamentos do cliente.
+- Avaliacoes.
+- Verificacao de avaliacao existente.
+- Criacao e atualizacao de avaliacao.
+
+As telas e componentes nao devem importar diretamente:
+
+- `collection`
+- `doc`
+- `query`
+- `where`
+- `getDocs`
+- `setDoc`
+- `updateDoc`
+- Outros recursos de persistencia do Firestore
+
+Preserve o comportamento atual e crie testes para os novos repositorios.
+
+### ARCH-003: RegisterScreen e timestamp
+
+Remova a responsabilidade de `RegisterScreen.tsx` criar `serverTimestamp`.
+
+A tela deve enviar apenas os dados do formulario.
+
+O repositorio ou servico de cadastro deve adicionar:
+
+- `createdAt`
+- `updatedAt`
+- Campos tecnicos necessarios
+
+Crie teste garantindo que a tela nao controla timestamps do banco.
+
+## Firebase e custos
+
+### COST-001: podeEnviarPara e sendWhatsApp
+
+Investigue `podeEnviarPara`.
+
+O achado indica ate seis leituras de colecoes inteiras, sem limite, para cada mensagem enviada.
+
+Substitua esse comportamento por uma solucao com:
+
+- Consultas indexadas.
+- Filtros por campos normalizados.
+- Limites explicitos.
+- Execucao paralela quando segura.
+- Resultado de curto-circuito quando uma recusa for encontrada.
+- Nenhuma leitura de colecao completa.
+- Indices declarados em `firestore.indexes.json`.
+- Normalizacao consistente de telefone.
+- Testes para todas as fontes de recusa.
+
+Considere centralizar preferencias e recusas em uma estrutura de consulta eficiente, mas nao faca migracao destrutiva sem compatibilidade.
+
+Meca ou estime comparativamente a quantidade maxima de leituras antes e depois.
+
+### COST-002: calcularDisponibilidade
+
+Atualmente `calcularDisponibilidade` aparentemente le todos os profissionais varias vezes por dia e processa cada um sequencialmente.
+
+Melhore para:
+
+- Consultar somente profissionais ativos e relevantes.
+- Usar paginacao.
+- Processar em lotes.
+- Usar concorrencia limitada.
+- Evitar `Promise.all` sem limite sobre toda a base.
+- Evitar carregar a colecao inteira em memoria.
+- Tratar falhas individuais sem interromper o lote.
+- Registrar metricas agregadas sem dados pessoais.
+- Evitar sobreposicao de duas execucoes agendadas.
+- Manter compatibilidade com os campos atuais.
+
+Avalie se uma atualizacao orientada por eventos pode complementar o processamento agendado, mas nao introduza uma arquitetura muito mais complexa sem beneficio comprovado.
+
+Crie testes para paginacao, concorrencia limitada e falha parcial.
+
+### COST-003: funcoes agendadas sequenciais
+
+Analise:
+
+- `lembretesAgendamento`
+- `lembretes2Horas`
+- `relatorioSemanalEmail`
+
+Substitua loops sequenciais inadequados por:
+
+- Consultas restritas ao periodo e status necessarios.
+- Paginacao.
+- Processamento em lotes.
+- Concorrencia limitada.
+- Idempotencia.
+- Protecao contra envio duplicado.
+- Registro de sucesso e falha por lote.
+- Continuidade em caso de falha individual.
+
+Nao envie mensagens ou e-mails reais durante os testes.
+
+### COST-004: cache de profissionais
+
+Adicione `CacheService` a `listarProfissionaisDoNegocio`, seguindo o padrao do restante do repositorio.
+
+Garanta:
+
+- Chave separada por `negocioId`.
+- Tempo de expiracao coerente.
+- Invalidacao quando profissional for criado.
+- Invalidacao quando profissional for editado.
+- Invalidacao quando profissional for ativado ou desativado.
+- Invalidacao quando servicos ou dados publicos forem alterados.
+- Ausencia de dados de uma empresa no cache de outra.
+- Testes de acerto, expiracao e invalidacao.
+
+## Performance e concorrencia
+
+### PERF-001: condicao de corrida no historico
+
+Corrija a condicao de corrida em:
+
+`HistoricoScreen.tsx`
+
+Ao trocar filtros rapidamente, uma resposta antiga nao pode sobrescrever a resposta do filtro mais recente.
+
+Use o padrao mais adequado ao projeto:
+
+- Identificador crescente de requisicao.
+- Cancelamento logico.
+- Cleanup do efeito.
+- Outra abordagem ja utilizada em `AgendamentoScreen` ou `AgendamentoManualScreen`.
+
+Crie um teste em que:
+
+1. O primeiro filtro inicia uma chamada lenta.
+2. O segundo filtro inicia uma chamada rapida.
+3. A segunda resposta chega primeiro.
+4. A primeira resposta chega depois.
+5. A tela continua mostrando os dados do segundo filtro.
+
+### PERF-002: listener FCM possivelmente duplicado
+
+Nao aplique uma correcao sem confirmar o problema.
+
+Investigue em runtime e por testes:
+
+- Inicializacao do servico de notificacoes.
+- Login.
+- Logout.
+- Novo login na mesma sessao.
+- Troca de usuario.
+- Montagem e desmontagem da navegacao.
+- Listeners foreground.
+- Listeners de abertura de notificacao.
+- Refresh de token.
+
+Confirme:
+
+- Quantos listeners sao registrados.
+- Onde ficam armazenadas as funcoes de unsubscribe.
+- Se o logout remove os listeners.
+- Se a inicializacao e idempotente.
+
+Se houver duplicacao:
+
+- Defina um unico proprietario do ciclo de vida.
+- Remova listeners no logout e desmontagem.
+- Evite registrar novamente o mesmo callback.
+- Crie teste que simule login, logout e login.
+- Garanta que uma notificacao produza somente uma acao.
+
+Se a suspeita nao se confirmar, marque como `nao se aplica` e inclua a evidencia.
+
+## Testes
+
+### TEST-001: Detox desatualizado
+
+Atualize:
+
+- `e2e/login.test.js`
+- `e2e/agendamento.test.js`
+
+Revise tambem os demais testes E2E.
+
+Alinhe:
+
+- `testID`
+- Textos atuais.
+- Navegacao atual.
+- Login e verificacao de e-mail.
+- Jornada de cliente.
+- Vinculo com barbearia, se necessario.
+- Selecao de profissional.
+- Selecao de servico.
+- Data e horario.
+- Confirmacao do agendamento.
+- Dados utilizados pelo seed do emulador.
+
+Prefira `testID` estavel em vez de depender exclusivamente de textos visuais.
+
+Execute os testes se houver emulador Android disponivel.
+
+Se nao for possivel executar:
+
+- Valide configuracao e sintaxe.
+- Execute o seed.
+- Registre que a execucao completa depende do emulador.
+- Nao declare que os E2E estao passando sem executa-los.
+
+### TEST-002: AgendamentoScreen
+
+Aumente de forma significativa a cobertura de `AgendamentoScreen.tsx`.
+
+Meta recomendada: aproximar ou superar 70% de linhas, sem criar testes artificiais.
+
+Cubra principalmente:
+
+- Carregamento de servicos.
+- Selecao de servico.
+- Duracao e preco.
+- Datas disponiveis.
+- Horarios disponiveis.
+- Folgas.
+- Bloqueios.
+- Intervalo.
+- Horario ja ocupado.
+- Condicao de corrida.
+- Confirmacao.
+- Erro da Cloud Function.
+- Duplo clique.
+- Profissional desativado.
+- Servico indisponivel.
+- Navegacao apos sucesso.
+
+Se a tela estiver dificil de testar por excesso de responsabilidades, extraia hooks ou regras de negocio de maneira incremental.
+
+### TEST-003: PerfilScreen e LGPD
+
+Aumente significativamente a cobertura de `PerfilScreen.tsx`.
+
+Cubra:
+
+- Carregamento do perfil.
+- Alteracao de dados.
+- Logout.
+- Confirmacao de exclusao.
+- Cancelamento da exclusao.
+- Sucesso da exclusao.
+- Falha parcial.
+- Limpeza da sessao.
+- Limpeza de convite pendente.
+- Protecao contra varios cliques.
+- Estado de carregamento.
+- Mensagens de erro.
+
+Nao execute exclusoes reais nos testes.
+
+### TEST-004: isolamento no Firestore
+
+Crie testes de regras para:
+
+- `negocios`
+- Membros da equipe.
+- Comissao.
+- Despesas.
+
+Cubra:
+
+- Proprietario acessando o proprio negocio.
+- Proprietario tentando acessar outro negocio.
+- Membro acessando dados permitidos.
+- Membro alterando comissao sem autorizacao.
+- Cliente tentando acessar dados privados.
+- Cliente tentando acessar despesas.
+- Criacao de membro por pessoa nao autorizada.
+- Alteracao de `negocioId`.
+- Exclusao indevida.
+- Isolamento entre duas empresas.
+
+### TEST-005: script dos emuladores
+
+Corrija `test:rules` no `package.json`.
+
+Atualmente ele aparentemente inicia apenas o Firestore, mas tambem executa testes de Storage.
+
+Ajuste para iniciar todos os emuladores necessarios, provavelmente:
+
+- Firestore.
+- Storage.
+
+Confirme a configuracao em `firebase.json`.
+
+Execute:
+
+- Testes de Firestore.
+- Testes de Storage.
+- Suite combinada.
+
+Os nove erros `ECONNREFUSED` so estarao resolvidos quando o emulador necessario estiver realmente ativo.
+
+## Codigo morto e duplicacao
+
+### CLEAN-001: avatar duplicado
+
+Localize as nove telas que implementam manualmente avatar com iniciais.
+
+Reutilize `AvatarIlustrado`.
+
+Se necessario, evolua o componente para aceitar:
+
+- Nome.
+- URL de imagem.
+- Tamanho.
+- Cor.
+- Estilo.
+- Estado de carregamento.
+- Texto de acessibilidade.
+
+Preserve o resultado visual atual ou melhore de maneira consistente.
+
+Remova implementacoes duplicadas somente depois de migrar e testar cada tela.
+
+### CLEAN-002: convite pendente
+
+Garanta que `limparConvitePendente` seja executada em:
+
+- Logout.
+- Exclusao de conta.
+- Troca de usuario.
+- Outros pontos que encerram a sessao permanentemente.
+
+Nao limpe o convite durante login ou verificacao de e-mail antes que ele seja processado.
+
+Crie testes para:
+
+- Logout.
+- Exclusao de conta.
+- Login retomando convite valido.
+- Troca de usuario sem herdar convite anterior.
+
+### CLEAN-003: PaymentService
+
+Atualmente `PaymentService.processPayment` esta marcado como depreciado, mas aparentemente contem a implementacao usada por `registrarPagamentoPresencial`.
+
+Inverta corretamente:
+
+- `registrarPagamentoPresencial` deve conter a implementacao principal.
+- `processPayment` deve ser apenas um wrapper de compatibilidade marcado como depreciado.
+- Atualize chamadas internas para usar o metodo atual.
+- Evite recursao entre os metodos.
+- Preserve compatibilidade temporaria.
+- Crie testes para os dois metodos.
+- Atualize os comentarios.
+
+### CLEAN-004: comentario de deep link
+
+Atualize o comentario de `linkDeAgendamento` em `DeepLinkService.ts`.
+
+Confirme onde a funcao ainda e usada e descreva o comportamento real.
+
+Nao remova a funcao se ela for necessaria para compatibilidade com links antigos.
+
+## Cores e tema
+
+### UI-001: banners com cores fixas
+
+Substitua cores hexadecimais fixas nos banners destas telas:
+
+- `AgendamentoScreen`
+- `PerfilProfissionalScreen`
+- `ConfigServicosScreen`
+- `DespesasScreen`
+- `QRCodeScreen`
+- `TemplatesMensagemScreen`
+
+Use tokens semanticos do tema, como:
+
+- Informacao.
+- Sucesso.
+- Aviso.
+- Erro.
+- Superficie do banner.
+- Texto do banner.
+- Borda do banner.
+
+Se os tokens nao existirem, adicione-os ao tema central em vez de repetir novas cores nas telas.
+
+Valide:
+
+- Tema claro.
+- Tema escuro.
+- Contraste de texto.
+- Icones.
+- Bordas.
+- Estados pressionados.
+
+Nao altere cores de marca sem necessidade.
+
+### UI-002: borda dos headers
+
+Identifique o padrao de separacao dos headers.
+
+Corrija o baixo contraste por meio de:
+
+- Token central de borda.
+- Componente compartilhado ja existente.
+- Ajuste localizado no tema.
+
+Evite editar dezenas de telas manualmente se o problema puder ser resolvido centralmente.
+
+Valide no tema claro e escuro.
+
+## Pendencias adicionais do relatorio
+
+Depois de tratar os itens acima, leia integralmente:
+
+`docs/auditoria-geral.md`
+
+Inclua qualquer pendencia adicional que nao esteja neste prompt.
+
+Nao reabra itens ja comprovadamente resolvidos.
+
+Nao transforme sugestoes futuras de produto em correcoes tecnicas obrigatorias.
+
+Separe claramente:
+
+- Defeito confirmado.
+- Melhoria tecnica aplicavel agora.
+- Decisao de produto.
+- Dependencia externa.
+- Sugestao futura.
+
+## Ordem de execucao
+
+Execute em ondas:
+
+1. Seguranca e privacidade.
+2. Firebase e custos.
+3. Regras financeiras e arquitetura.
+4. Concorrencia e notificacoes.
+5. Testes criticos.
+6. Codigo morto e duplicacao.
+7. Tema e consistencia visual.
+8. Revisao independente.
+9. Validacao completa.
+
+Depois de cada onda, execute os testes diretamente relacionados.
+
+## Validacao final obrigatoria
+
+Execute:
+
+- Testes unitarios.
+- Testes de componentes.
+- Testes das Cloud Functions.
+- Testes das regras do Firestore.
+- Testes das regras do Storage.
+- TypeScript.
+- ESLint.
+- Cobertura.
+- `git diff --check`.
+- Detox, se houver emulador disponivel.
+- Scripts adicionais relevantes dos `package.json`.
+
+Verifique tambem:
+
+- Handles abertos.
+- Promessas nao aguardadas.
+- Warnings do React.
+- Warnings de `act`.
+- Testes instaveis.
+- Logs com dados pessoais.
+- Novas consultas sem limite.
+- Novos acessos diretos ao Firestore em telas.
+- Novos hexadecimais nas telas corrigidas.
+- Novos usos da API depreciada.
+- Diffs inesperados.
+
+Nao reduza metas de cobertura e nao remova testes legitimos para obter resultado verde.
+
+## Revisao independente
+
+O agente revisor deve:
+
+- Ler este prompt.
+- Ler o relatorio original.
+- Conferir cada item do checklist.
+- Revisar todos os arquivos alterados.
+- Confirmar que o rate limiting e distribuido e atomico.
+- Confirmar que dados pessoais sao sanitizados pelo conteudo.
+- Confirmar que nao existem consultas de colecao inteira em `podeEnviarPara`.
+- Confirmar paginacao e concorrencia limitada nas funcoes agendadas.
+- Confirmar que a regra de comissao saiu da tela.
+- Confirmar que telas nao acessam Firestore diretamente.
+- Confirmar o teste da condicao de corrida.
+- Confirmar o ciclo de vida do FCM.
+- Confirmar os testes de isolamento multiempresa.
+- Confirmar a correcao do script de emuladores.
+- Confirmar a remocao das duplicacoes de avatar.
+- Confirmar a limpeza do convite no encerramento da sessao.
+- Confirmar a inversao correta do metodo depreciado.
+- Confirmar o uso dos tokens do tema.
+- Procurar regressoes introduzidas pelas correcoes.
+
+Itens reprovados pelo revisor devem ser reabertos e corrigidos.
+
+## Atualizacao do relatorio
+
+Atualize `docs/auditoria-geral.md` com uma secao:
+
+`Resolucao das pendencias`
+
+Inclua uma tabela com:
+
+- ID.
+- Pendencia.
+- Status.
+- Correcao realizada.
+- Arquivos alterados.
+- Testes.
+- Evidencia.
+- Risco restante.
+
+Inclua numeros finais:
+
+- Total de pendencias.
+- Resolvidas.
+- Nao aplicaveis.
+- Bloqueadas.
+- Pendentes.
+- Testes antes e depois.
+- Cobertura antes e depois.
+- Leituras estimadas antes e depois.
+- Erros de TypeScript antes e depois.
+- Erros do ESLint antes e depois.
+
+## Criterio de conclusao
+
+O trabalho somente estara concluido quando:
+
+- Todos os itens deste prompt tiverem status final.
+- Pendencias adicionais do relatorio tiverem sido consideradas.
+- Todos os defeitos aplicaveis estiverem corrigidos.
+- Os testes estiverem passando.
+- TypeScript estiver sem erros.
+- ESLint estiver sem novos erros.
+- Testes de Firestore e Storage estiverem funcionando.
+- O agente revisor independente tiver aprovado.
+- O relatorio estiver atualizado.
+
+Nao encerre oferecendo priorizar alguns itens depois.
+
+Se uma decisao de produto ou acesso externo impedir uma correcao, continue todo o restante e apresente somente essa decisao como bloqueio objetivo.
+
+Nao faca commit, push ou deploy.
